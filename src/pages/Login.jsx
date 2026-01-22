@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Input, Button, Checkbox, GlassCard } from '../components/ui';
+import { useAuth } from '../context/AuthContext';
 
 function Login() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -46,13 +48,18 @@ function Login() {
     if (!validateForm()) return;
     
     setIsLoading(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setIsLoading(false);
     
-    // TODO: Implement actual login logic
-    console.log('Login attempt:', formData);
-    navigate('/dashboard');
+    try {
+      // Determine role based on email domain (for demo)
+      const role = formData.email.includes('teacher') || formData.email.includes('prof') ? 'teacher' : 'student';
+      await login(formData.email, formData.password, role);
+      navigate('/dashboard');
+    } catch (error) {
+      console.error('Login failed:', error);
+      setErrors({ general: 'Login failed. Please try again.' });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSocialLogin = (provider) => {

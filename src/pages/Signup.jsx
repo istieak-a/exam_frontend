@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Input, Button, Checkbox, GlassCard } from '../components/ui';
+import { useAuth } from '../context/AuthContext';
 
 // Password strength calculator
 function getPasswordStrength(password) {
@@ -67,6 +68,7 @@ function PasswordStrengthIndicator({ password }) {
 
 function Signup() {
   const navigate = useNavigate();
+  const { signup } = useAuth();
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -128,13 +130,16 @@ function Signup() {
     if (!validateForm()) return;
     
     setIsLoading(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setIsLoading(false);
     
-    // TODO: Implement actual signup logic
-    console.log('Signup attempt:', formData);
-    navigate('/dashboard');
+    try {
+      await signup(formData.fullName, formData.email, formData.password, formData.role);
+      navigate('/dashboard');
+    } catch (error) {
+      console.error('Signup failed:', error);
+      setErrors({ general: 'Signup failed. Please try again.' });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSocialSignup = (provider) => {

@@ -3,9 +3,9 @@
 /* Custom Theme Configuration for Exam Management System */
 @theme {
   /* Primary Colors - Education Blue */
-  --color-primary: #4F46E5;
-  --color-primary-dark: #4338CA;
-  --color-primary-light: #6366F1;
+  --color-primary: #0084D1;
+  --color-primary-dark: #0070B8;
+  --color-primary-light: #1E9AE0;
   
   /* Secondary Colors - Warm Accent */
   --color-secondary: #F59E0B;
@@ -36,8 +36,8 @@
   --color-border-dark: #334155;
   
   /* Gradient Definitions */
-  --color-gradient-start: #4F46E5;
-  --color-gradient-end: #7C3AED;
+  --color-gradient-start: #0084D1;
+  --color-gradient-end: #00A8E8;
   
   /* Font Family */
   --font-display: 'Inter', system-ui, sans-serif;
@@ -94,6 +94,17 @@
   }
   50% {
     transform: translateY(-20px);
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
