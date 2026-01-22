@@ -1,1 +1,117 @@
 @import "tailwindcss";
+
+/* Custom Theme Configuration for Exam Management System */
+@theme {
+  /* Primary Colors - Education Blue */
+  --color-primary: #4F46E5;
+  --color-primary-dark: #4338CA;
+  --color-primary-light: #6366F1;
+  
+  /* Secondary Colors - Warm Accent */
+  --color-secondary: #F59E0B;
+  --color-secondary-dark: #D97706;
+  --color-secondary-light: #FBBF24;
+  
+  /* Accent Colors - Success Green */
+  --color-accent: #10B981;
+  --color-accent-dark: #059669;
+  --color-accent-light: #34D399;
+  
+  /* Background Colors */
+  --color-background-light: #F8FAFC;
+  --color-background-dark: #0F172A;
+  --color-foreground-light: #FFFFFF;
+  --color-foreground-dark: #1E293B;
+  
+  /* Text Colors */
+  --color-text-light-primary: #1E293B;
+  --color-text-light-secondary: #475569;
+  --color-text-light-muted: #94A3B8;
+  --color-text-dark-primary: #F8FAFC;
+  --color-text-dark-secondary: #CBD5E1;
+  --color-text-dark-muted: #64748B;
+  
+  /* Border Colors */
+  --color-border-light: #E2E8F0;
+  --color-border-dark: #334155;
+  
+  /* Gradient Definitions */
+  --color-gradient-start: #4F46E5;
+  --color-gradient-end: #7C3AED;
+  
+  /* Font Family */
+  --font-display: 'Inter', system-ui, sans-serif;
+}
+
+/* Base Styles */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    font-family: var(--font-display);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Custom Utility Classes */
+@layer utilities {
+  .text-gradient {
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .bg-gradient-primary {
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  }
+  
+  .bg-gradient-hero {
+    background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 50%, #EC4899 100%);
+  }
+  
+  .glass-effect {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+  
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+  
+  .animate-pulse-slow {
+    animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-background-light);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-light);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-light-muted);
+}
