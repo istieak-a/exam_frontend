@@ -182,11 +182,13 @@ export const submissions = [
   {
     id: 'sub-001',
     student: { name: 'Emma Watson', id: 'STU-2024-001' },
+    examId: 'exam-001',
     examTitle: 'Data Structures Midterm',
+    examType: 'cq', // CQ exam - requires manual grading
     status: 'pending',
     submittedAt: 'Jan 23, 2026 10:30 AM',
     timeTaken: '85 min',
-    autoScore: '45/60',
+    autoScore: undefined,
     manualScore: undefined,
     totalScore: undefined,
     maxScore: 100,
@@ -194,12 +196,14 @@ export const submissions = [
   {
     id: 'sub-002',
     student: { name: 'John Smith', id: 'STU-2024-002' },
+    examId: 'exam-001',
     examTitle: 'Data Structures Midterm',
+    examType: 'cq', // CQ exam
     status: 'graded',
     submittedAt: 'Jan 23, 2026 11:00 AM',
     timeTaken: '78 min',
-    autoScore: '52/60',
-    manualScore: '35/40',
+    autoScore: undefined,
+    manualScore: '87/100',
     totalScore: 87,
     maxScore: 100,
     percentage: 87,
@@ -207,15 +211,61 @@ export const submissions = [
   {
     id: 'sub-003',
     student: { name: 'Sarah Johnson', id: 'STU-2024-003' },
+    examId: 'exam-002',
     examTitle: 'Database Management Quiz',
-    status: 'in-review',
+    examType: 'mcq', // MCQ exam - auto graded
+    status: 'graded',
     submittedAt: 'Jan 23, 2026 2:15 PM',
     timeTaken: '42 min',
-    autoScore: '28/30',
-    manualScore: '15/20',
+    autoScore: '43/50',
+    manualScore: undefined,
     totalScore: 43,
     maxScore: 50,
     percentage: 86,
+  },
+  {
+    id: 'sub-004',
+    student: { name: 'Michael Brown', id: 'STU-2024-004' },
+    examId: 'exam-002',
+    examTitle: 'Database Management Quiz',
+    examType: 'mcq', // MCQ exam
+    status: 'graded',
+    submittedAt: 'Jan 23, 2026 2:30 PM',
+    timeTaken: '40 min',
+    autoScore: '38/50',
+    manualScore: undefined,
+    totalScore: 38,
+    maxScore: 50,
+    percentage: 76,
+  },
+  {
+    id: 'sub-005',
+    student: { name: 'Lisa Anderson', id: 'STU-2024-005' },
+    examId: 'exam-003',
+    examTitle: 'Algorithms Final Exam',
+    examType: 'cq', // CQ exam
+    status: 'in-review',
+    submittedAt: 'Jan 23, 2026 3:45 PM',
+    timeTaken: '110 min',
+    autoScore: undefined,
+    manualScore: undefined,
+    totalScore: undefined,
+    maxScore: 150,
+  },
+  {
+    id: 'sub-006',
+    student: { name: 'David Wilson', id: 'STU-2024-006' },
+    examId: 'exam-002',
+    examTitle: 'Database Management Quiz',
+    examType: 'mcq', // MCQ exam
+    status: 'graded',
+    submittedAt: 'Jan 23, 2026 2:20 PM',
+    timeTaken: '38 min',
+    autoScore: '45/50',
+    manualScore: undefined,
+    totalScore: 45,
+    maxScore: 50,
+    percentage: 90,
   },
 ];
 
@@ -426,3 +476,66 @@ export const chatMessages = {
     },
   ],
 };
+
+// Exam Questions Database
+export const examQuestions = {
+  'exam-001': [
+    {
+      id: 1,
+      type: 'mcq',
+      question: 'What is the time complexity of binary search?',
+      options: ['O(n)', 'O(log n)', 'O(n log n)', 'O(1)'],
+      correctAnswer: 1,
+      marks: 2,
+    },
+    {
+      id: 2,
+      type: 'mcq',
+      question: 'Which data structure uses LIFO principle?',
+      options: ['Queue', 'Stack', 'Array', 'Linked List'],
+      correctAnswer: 1,
+      marks: 2,
+    },
+    {
+      id: 3,
+      type: 'short',
+      question: 'Explain the difference between stack and queue data structures.',
+      marks: 5,
+    },
+  ],
+  'exam-002': [
+    {
+      id: 1,
+      type: 'mcq',
+      question: 'What does SQL stand for?',
+      options: ['Structured Query Language', 'Simple Question Language', 'Standard Query Language', 'System Query Language'],
+      correctAnswer: 0,
+      marks: 2,
+    },
+    {
+      id: 2,
+      type: 'mcq',
+      question: 'Which SQL command is used to retrieve data?',
+      options: ['GET', 'FETCH', 'SELECT', 'RETRIEVE'],
+      correctAnswer: 2,
+      marks: 2,
+    },
+  ],
+  'exam-003': [
+    {
+      id: 1,
+      type: 'mcq',
+      question: 'What is the worst-case time complexity of Quick Sort?',
+      options: ['O(n)', 'O(n log n)', 'O(n²)', 'O(log n)'],
+      correctAnswer: 2,
+      marks: 3,
+    },
+    {
+      id: 2,
+      type: 'short',
+      question: 'Explain the divide and conquer approach in algorithms.',
+      marks: 10,
+    },
+  ],
+};
+

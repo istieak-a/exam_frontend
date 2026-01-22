@@ -24,14 +24,10 @@ import Support from './pages/dashboard/Support';
 import TakeExam from './pages/dashboard/TakeExam';
 import ExamResult from './pages/dashboard/ExamResult';
 import CreateExam from './pages/dashboard/CreateExam';
-
-// Placeholder components for routes we'll build later
-const ExamList = () => <div className="text-center py-12"><h1 className="text-2xl font-bold">Exam List (Coming Soon)</h1></div>;
-const ExamDetails = () => <div className="text-center py-12"><h1 className="text-2xl font-bold">Exam Details (Coming Soon)</h1></div>;
-const Submissions = () => <div className="text-center py-12"><h1 className="text-2xl font-bold">Submissions (Coming Soon)</h1></div>;
-const GradeSubmission = () => <div className="text-center py-12"><h1 className="text-2xl font-bold">Grade Submission (Coming Soon)</h1></div>;
-const Grading = () => <div className="text-center py-12"><h1 className="text-2xl font-bold">Grading (Coming Soon)</h1></div>;
-const Analytics = () => <div className="text-center py-12"><h1 className="text-2xl font-bold">Analytics (Coming Soon)</h1></div>;
+import ExamList from './pages/dashboard/ExamList';
+import Submissions from './pages/dashboard/Submissions';
+import ExamDetails from './pages/dashboard/ExamDetails';
+import GradeSubmission from './pages/dashboard/GradeSubmission';
 
 // Create router using the latest createBrowserRouter API
 const router = createBrowserRouter([
@@ -95,10 +91,6 @@ const router = createBrowserRouter([
         path: 'grade/:id',
         element: <GradeSubmission />,
       },
-      {
-        path: 'grading',
-        element: <Grading />,
-      },
       // Student Routes
       {
         path: 'available-exams',
@@ -117,10 +109,6 @@ const router = createBrowserRouter([
         element: <ExamResult />,
       },
       // Shared Routes
-      {
-        path: 'analytics',
-        element: <Analytics />,
-      },
       {
         path: 'chat',
         element: <Chat />,

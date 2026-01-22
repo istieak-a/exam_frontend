@@ -1,8 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { teacherExams, examQuestions } from '../../data/mockData';
 
 export default function CreateExam() {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const editId = searchParams.get('edit');
+  const isEditMode = !!editId;
+  
   const [isLoading, setIsLoading] = useState(true);
   const [examType, setExamType] = useState('mcq'); // 'mcq' or 'cq'
   const [examData, setExamData] = useState({
@@ -21,11 +28,40 @@ export default function CreateExam() {
   const [showQuestionForm, setShowQuestionForm] = useState(false);
 
   useEffect(() => {
+    // Load exam data if in edit mode
+    if (isEditMode) {
+      const examToEdit = teacherExams.find(e => e.id === editId);
+      if (examToEdit) {
+        setExamData({
+          title: examToEdit.title || '',
+          course: examToEdit.subject || '',
+          description: examToEdit.description || '',
+          duration: examToEdit.duration?.toString() || '',
+          totalMarks: examToEdit.totalMarks?.toString() || '',
+          passingMarks: examToEdit.passingMarks?.toString() || '',
+          startDate: examToEdit.startDate || '',
+          startTime: examToEdit.startTime || '',
+          endDate: examToEdit.dueDate || '',
+          endTime: examToEdit.endTime || '',
+        });
+        
+        // Load questions for this exam
+        const existingQuestions = examQuestions[editId] || [];
+        setQuestions(existingQuestions);
+        
+        // Set exam type based on questions
+        if (existingQuestions.length > 0) {
+          const hasMCQ = existingQuestions.some(q => q.type === 'mcq');
+          setExamType(hasMCQ ? 'mcq' : 'cq');
+        }
+      }
+    }
+    
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 600);
     return () => clearTimeout(timer);
-  }, []);
+  }, [editId, isEditMode]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -46,7 +82,13 @@ export default function CreateExam() {
     console.log('Exam Data:', examData);
     console.log('Questions:', questions);
     // Here you would typically send this to your backend
-    alert('Exam created successfully!');
+    if (isEditMode) {
+      alert('Exam updated successfully!');
+      navigate(`/dashboard/exams/${editId}`);
+    } else {
+      alert('Exam created successfully!');
+      navigate('/dashboard/exams');
+    }
   };
 
   if (isLoading) {
@@ -58,19 +100,34 @@ export default function CreateExam() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Create New Exam</h1>
+          <h1 className="text-2xl font-bold text-slate-900">
+            {isEditMode ? 'Edit Exam' : 'Create New Exam'}
+          </h1>
           <p className="mt-1 text-sm text-slate-600">
-            Design and publish new exams for your students
+            {isEditMode 
+              ? 'Update exam details and questions' 
+              : 'Design and publish new exams for your students'}
           </p>
         </div>
-        <button
-          onClick={handleSubmit}
-          style={{ background: 'linear-gradient(to right, #0084D1, #006BB3)' }}
-          className="flex items-center gap-2 rounded-lg px-5 py-2.5 font-medium text-white shadow-lg transition-all hover:shadow-xl hover:scale-105"
-        >
-          <span className="material-symbols-outlined text-xl">check_circle</span>
-          Publish Exam
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => navigate(isEditMode ? `/dashboard/exams/${editId}` : '/dashboard/exams')}
+            className="flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2.5 font-medium text-slate-700 transition-all hover:bg-slate-50"
+          >
+            <span className="material-symbols-outlined text-xl">close</span>
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            style={{ background: 'linear-gradient(to right, #0084D1, #006BB3)' }}
+            className="flex items-center gap-2 rounded-lg px-5 py-2.5 font-medium text-white shadow-lg transition-all hover:shadow-xl hover:scale-105"
+          >
+            <span className="material-symbols-outlined text-xl">
+              {isEditMode ? 'save' : 'check_circle'}
+            </span>
+            {isEditMode ? 'Update Exam' : 'Publish Exam'}
+          </button>
+        </div>
       </div>
 
       {/* Exam Type Selection */}

@@ -9,8 +9,6 @@ const teacherMenuItems = [
   { name: 'Create Exam', href: '/dashboard/create-exam', icon: 'add_circle' },
   { name: 'My Exams', href: '/dashboard/exams', icon: 'assignment' },
   { name: 'Submissions', href: '/dashboard/submissions', icon: 'fact_check' },
-  { name: 'Grading', href: '/dashboard/grading', icon: 'grade' },
-  { name: 'Analytics', href: '/dashboard/analytics', icon: 'analytics' },
   { name: 'Chat', href: '/dashboard/chat', icon: 'chat' },
 ];
 
