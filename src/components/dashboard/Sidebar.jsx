@@ -14,7 +14,7 @@ const teacherMenuItems = [
   { name: 'Chat', href: '/dashboard/chat', icon: 'chat' },
 ];
 
-// Student menu items
+// Student menu items (Create Exam is only for teachers)
 const studentMenuItems = [
   { name: 'Dashboard', href: '/dashboard', icon: 'dashboard', exact: true },
   { name: 'Available Exams', href: '/dashboard/available-exams', icon: 'quiz' },

@@ -23,9 +23,9 @@ import Profile from './pages/dashboard/Profile';
 import Support from './pages/dashboard/Support';
 import TakeExam from './pages/dashboard/TakeExam';
 import ExamResult from './pages/dashboard/ExamResult';
+import CreateExam from './pages/dashboard/CreateExam';
 
 // Placeholder components for routes we'll build later
-const CreateExam = () => <div className="text-center py-12"><h1 className="text-2xl font-bold">Create Exam (Coming Soon)</h1></div>;
 const ExamList = () => <div className="text-center py-12"><h1 className="text-2xl font-bold">Exam List (Coming Soon)</h1></div>;
 const ExamDetails = () => <div className="text-center py-12"><h1 className="text-2xl font-bold">Exam Details (Coming Soon)</h1></div>;
 const Submissions = () => <div className="text-center py-12"><h1 className="text-2xl font-bold">Submissions (Coming Soon)</h1></div>;
