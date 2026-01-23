@@ -2,31 +2,45 @@
 
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { teacherExams } from '../../data/mockData';
+import { getTeacherExams } from '../../services/examService';
 
 export default function ExamList() {
   const [isLoading, setIsLoading] = useState(true);
-  const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'published', 'draft'
+  const [exams, setExams] = useState([]);
+  const [filterStatus, setFilterStatus] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 600);
-    return () => clearTimeout(timer);
+    const fetchExams = async () => {
+      try {
+        setIsLoading(true);
+        const data = await getTeacherExams();
+        const examsList = Array.isArray(data) ? data : data?.content || [];
+        setExams(examsList);
+      } catch (err) {
+        console.error('Failed to fetch exams:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchExams();
   }, []);
 
-  const filteredExams = teacherExams.filter((exam) => {
-    const matchesStatus = filterStatus === 'all' || exam.status === filterStatus;
+  const filteredExams = exams.filter((exam) => {
+    const matchesStatus = filterStatus === 'all' || exam.status.toLowerCase() === filterStatus;
     const matchesSearch = exam.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          exam.subject.toLowerCase().includes(searchQuery.toLowerCase());
+                          (exam.course || exam.subject || '').toLowerCase().includes(searchQuery.toLowerCase());
     return matchesStatus && matchesSearch;
   });
 
   const stats = {
-    all: teacherExams.length,
-    published: teacherExams.filter(e => e.status === 'published').length,
-    draft: teacherExams.filter(e => e.status === 'draft').length,
+    all: exams.length,
+    draft: exams.filter(e => e.status.toLowerCase() === 'draft').length,
+    published: exams.filter(e => e.status.toLowerCase() === 'published').length,
+    active: exams.filter(e => e.status.toLowerCase() === 'active').length,
+    completed: exams.filter(e => e.status.toLowerCase() === 'completed').length,
+    archived: exams.filter(e => e.status.toLowerCase() === 'archived').length,
   };
 
   if (isLoading) {
@@ -54,7 +68,7 @@ export default function ExamList() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
         <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-200">
           <div className="flex items-center justify-between">
             <div>
@@ -73,8 +87,20 @@ export default function ExamList() {
         <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-600">Published</p>
-              <p className="mt-1 text-3xl font-bold text-slate-900">{stats.published}</p>
+              <p className="text-sm font-medium text-slate-600">Active</p>
+              <p className="mt-1 text-3xl font-bold text-slate-900">{stats.active}</p>
+            </div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500 text-white">
+              <span className="material-symbols-outlined text-2xl">play_circle</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-slate-600">Completed</p>
+              <p className="mt-1 text-3xl font-bold text-slate-900">{stats.completed}</p>
             </div>
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-green-500 text-white">
               <span className="material-symbols-outlined text-2xl">check_circle</span>
@@ -99,10 +125,10 @@ export default function ExamList() {
       <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-200">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           {/* Status Filter */}
-          <div className="flex gap-2 rounded-lg bg-slate-100 p-1">
+          <div className="flex flex-wrap gap-2 rounded-lg bg-slate-100 p-1">
             <button
               onClick={() => setFilterStatus('all')}
-              className={`rounded-md px-4 py-2 text-sm font-medium transition-all ${
+              className={`rounded-md px-3 py-2 text-sm font-medium transition-all ${
                 filterStatus === 'all'
                   ? 'bg-white text-slate-900 shadow-sm'
                   : 'text-slate-600 hover:text-slate-900'
@@ -111,8 +137,18 @@ export default function ExamList() {
               All ({stats.all})
             </button>
             <button
+              onClick={() => setFilterStatus('draft')}
+              className={`rounded-md px-3 py-2 text-sm font-medium transition-all ${
+                filterStatus === 'draft'
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Drafts ({stats.draft})
+            </button>
+            <button
               onClick={() => setFilterStatus('published')}
-              className={`rounded-md px-4 py-2 text-sm font-medium transition-all ${
+              className={`rounded-md px-3 py-2 text-sm font-medium transition-all ${
                 filterStatus === 'published'
                   ? 'bg-white text-slate-900 shadow-sm'
                   : 'text-slate-600 hover:text-slate-900'
@@ -121,14 +157,24 @@ export default function ExamList() {
               Published ({stats.published})
             </button>
             <button
-              onClick={() => setFilterStatus('draft')}
-              className={`rounded-md px-4 py-2 text-sm font-medium transition-all ${
-                filterStatus === 'draft'
+              onClick={() => setFilterStatus('active')}
+              className={`rounded-md px-3 py-2 text-sm font-medium transition-all ${
+                filterStatus === 'active'
                   ? 'bg-white text-slate-900 shadow-sm'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Drafts ({stats.draft})
+              Active ({stats.active})
+            </button>
+            <button
+              onClick={() => setFilterStatus('completed')}
+              className={`rounded-md px-3 py-2 text-sm font-medium transition-all ${
+                filterStatus === 'completed'
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Completed ({stats.completed})
             </button>
           </div>
 
@@ -181,17 +227,35 @@ export default function ExamList() {
 // Exam Card Component
 function ExamCard({ exam }) {
   const statusConfig = {
-    published: {
-      label: 'Published',
-      color: 'text-green-700',
-      bgColor: 'bg-green-50',
-      borderColor: 'border-green-200',
-    },
     draft: {
       label: 'Draft',
       color: 'text-amber-700',
       bgColor: 'bg-amber-50',
       borderColor: 'border-amber-200',
+    },
+    published: {
+      label: 'Published',
+      color: 'text-purple-700',
+      bgColor: 'bg-purple-50',
+      borderColor: 'border-purple-200',
+    },
+    active: {
+      label: 'Active',
+      color: 'text-blue-700',
+      bgColor: 'bg-blue-50',
+      borderColor: 'border-blue-200',
+    },
+    completed: {
+      label: 'Completed',
+      color: 'text-green-700',
+      bgColor: 'bg-green-50',
+      borderColor: 'border-green-200',
+    },
+    archived: {
+      label: 'Archived',
+      color: 'text-slate-700',
+      bgColor: 'bg-slate-50',
+      borderColor: 'border-slate-200',
     },
   };
 
@@ -201,8 +265,16 @@ function ExamCard({ exam }) {
     hard: { label: 'Hard', color: 'text-red-600' },
   };
 
-  const status = statusConfig[exam.status];
+  const examTypeConfig = {
+    mcq: { label: 'MCQ', icon: 'check_box' },
+    cq: { label: 'Written', icon: 'edit_note' },
+  };
+
+  const status = statusConfig[exam.status?.toLowerCase()] || statusConfig.draft;
   const difficulty = difficultyConfig[exam.difficulty];
+  const examType = examTypeConfig[exam.examType?.toLowerCase()];
+  const course = exam.course || exam.subject || 'No course';
+  const duration = exam.durationMinutes || exam.duration;
 
   return (
     <div className="rounded-xl bg-white p-6 shadow-sm border border-slate-200 transition-all hover:shadow-md">
@@ -216,55 +288,70 @@ function ExamCard({ exam }) {
               <span className="material-symbols-outlined text-xl">assignment</span>
             </div>
             <div className="flex-1">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <h3 className="text-lg font-semibold text-slate-900">{exam.title}</h3>
                 <span
                   className={`rounded-full border px-3 py-1 text-xs font-medium ${status.color} ${status.bgColor} ${status.borderColor}`}
                 >
                   {status.label}
                 </span>
+                {examType && (
+                  <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700">
+                    {examType.label}
+                  </span>
+                )}
               </div>
-              <p className="mt-1 text-sm text-slate-600">{exam.subject}</p>
+              <p className="mt-1 text-sm text-slate-600">{course}</p>
 
               {/* Exam Details */}
               <div className="mt-4 flex flex-wrap gap-4 text-sm text-slate-600">
                 <div className="flex items-center gap-1">
                   <span className="material-symbols-outlined text-base">quiz</span>
-                  <span>{exam.totalQuestions} questions</span>
+                  <span>{exam.totalQuestions || exam.questions?.length || 0} questions</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <span className="material-symbols-outlined text-base">schedule</span>
-                  <span>{exam.duration} min</span>
+                  <span>{duration} min</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <span className="material-symbols-outlined text-base">military_tech</span>
                   <span>{exam.totalMarks} marks</span>
                 </div>
-                {exam.difficulty && (
+                {exam.passingMarks && (
+                  <div className="flex items-center gap-1">
+                    <span className="material-symbols-outlined text-base">verified</span>
+                    <span>Pass: {exam.passingMarks}</span>
+                  </div>
+                )}
+                {exam.difficulty && difficulty && (
                   <div className="flex items-center gap-1">
                     <span className="material-symbols-outlined text-base">signal_cellular_alt</span>
                     <span className={difficulty.color}>{difficulty.label}</span>
                   </div>
                 )}
-                {exam.status === 'published' && (
+                {['active', 'completed'].includes(exam.status?.toLowerCase()) && (
                   <div className="flex items-center gap-1">
                     <span className="material-symbols-outlined text-base">people</span>
-                    <span>{exam.submissions} submissions</span>
+                    <span>{exam.submissions || 0} submissions</span>
                   </div>
                 )}
               </div>
 
               {/* Dates */}
-              {exam.startDate && (
+              {(exam.startDateTime || exam.startDate) && (
                 <div className="mt-3 flex flex-wrap gap-4 text-xs text-slate-500">
                   <span className="flex items-center gap-1">
                     <span className="material-symbols-outlined text-sm">calendar_today</span>
-                    Start: {exam.startDate}
+                    Start: {exam.startDateTime 
+                      ? new Date(exam.startDateTime).toLocaleString() 
+                      : exam.startDate}
                   </span>
-                  {exam.dueDate && (
+                  {(exam.endDateTime || exam.dueDate) && (
                     <span className="flex items-center gap-1">
                       <span className="material-symbols-outlined text-sm">event</span>
-                      Due: {exam.dueDate}
+                      End: {exam.endDateTime 
+                        ? new Date(exam.endDateTime).toLocaleString() 
+                        : exam.dueDate}
                     </span>
                   )}
                 </div>
@@ -281,9 +368,9 @@ function ExamCard({ exam }) {
             className="flex items-center gap-1 rounded-lg px-4 py-2 text-sm font-medium text-white transition-all hover:opacity-90"
           >
             <span className="material-symbols-outlined text-lg">
-              {exam.status === 'draft' ? 'edit' : 'visibility'}
+              {exam.status?.toLowerCase() === 'draft' ? 'edit' : 'visibility'}
             </span>
-            {exam.status === 'draft' ? 'Edit' : 'View'}
+            {exam.status?.toLowerCase() === 'draft' ? 'Edit' : 'View'}
           </Link>
         </div>
       </div>

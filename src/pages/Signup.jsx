@@ -70,11 +70,12 @@ function Signup() {
   const navigate = useNavigate();
   const { signup } = useAuth();
   const [formData, setFormData] = useState({
+    username: '',
     fullName: '',
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'student',
+    role: 'STUDENT',
     agreeToTerms: false,
   });
   const [errors, setErrors] = useState({});
@@ -94,6 +95,12 @@ function Signup() {
 
   const validateForm = () => {
     const newErrors = {};
+    
+    if (!formData.username.trim()) {
+      newErrors.username = 'Username is required';
+    } else if (formData.username.length < 3) {
+      newErrors.username = 'Username must be at least 3 characters';
+    }
     
     if (!formData.fullName.trim()) {
       newErrors.fullName = 'Full name is required';
@@ -132,11 +139,12 @@ function Signup() {
     setIsLoading(true);
     
     try {
-      await signup(formData.fullName, formData.email, formData.password, formData.role);
+      await signup(formData.username, formData.email, formData.password, formData.fullName, formData.role);
       navigate('/dashboard');
     } catch (error) {
       console.error('Signup failed:', error);
-      setErrors({ general: 'Signup failed. Please try again.' });
+      const errorMessage = error.message || 'Signup failed. Please try again.';
+      setErrors({ general: errorMessage });
     } finally {
       setIsLoading(false);
     }
@@ -179,7 +187,45 @@ function Signup() {
             </p>
           </div>
 
+          {errors.general && (
+            <div className="rounded-lg bg-red-50 border border-red-200 p-4">
+              <div className="flex items-start gap-3">
+                <svg className="w-5 h-5 text-red-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-red-800">{errors.general}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setErrors({ ...errors, general: '' })}
+                  className="text-red-400 hover:text-red-600"
+                >
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-5">
+            <Input
+              label="Username"
+              type="text"
+              name="username"
+              placeholder="Choose a username"
+              value={formData.username}
+              onChange={handleChange}
+              error={errors.username}
+              required
+              icon={
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              }
+            />
+
             <Input
               label="Full Name"
               type="text"
@@ -220,10 +266,10 @@ function Signup() {
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, role: 'student' }))}
+                  onClick={() => setFormData(prev => ({ ...prev, role: 'STUDENT' }))}
                   className={`
                     h-12 rounded-xl border-2 font-medium transition-all duration-200
-                    ${formData.role === 'student'
+                    ${formData.role === 'STUDENT'
                       ? 'border-primary bg-primary/10 text-primary'
                       : 'border-border-light bg-white text-text-light-secondary hover:border-primary/30'
                     }
@@ -233,10 +279,10 @@ function Signup() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, role: 'teacher' }))}
+                  onClick={() => setFormData(prev => ({ ...prev, role: 'TEACHER' }))}
                   className={`
                     h-12 rounded-xl border-2 font-medium transition-all duration-200
-                    ${formData.role === 'teacher'
+                    ${formData.role === 'TEACHER'
                       ? 'border-primary bg-primary/10 text-primary'
                       : 'border-border-light bg-white text-text-light-secondary hover:border-primary/30'
                     }

@@ -2,18 +2,36 @@
 
 import { useState, useEffect } from 'react';
 import { ExamCard, ExamCardSkeleton } from '../../components/dashboard';
-import { completedExams } from '../../data/mockData';
+import { getMySubmissions } from '../../services/examService';
 
 export default function MyExams() {
   const [isLoading, setIsLoading] = useState(true);
+  const [submissions, setSubmissions] = useState([]);
   const [activeTab, setActiveTab] = useState('completed'); // 'completed' or 'ongoing'
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 600);
-    return () => clearTimeout(timer);
+    const fetchSubmissions = async () => {
+      try {
+        setIsLoading(true);
+        const data = await getMySubmissions();
+        setSubmissions(data || []);
+      } catch (err) {
+        console.error('Failed to fetch submissions:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchSubmissions();
   }, []);
+
+  // Separate completed and ongoing submissions
+  const completedExams = submissions.filter(s => 
+    s.status === 'graded' || s.status === 'completed' || s.status === 'pending'
+  );
+  const ongoingExams = submissions.filter(s => 
+    s.status === 'in-progress' || s.status === 'started'
+  );
 
   if (isLoading) {
     return <PageSkeleton />;
@@ -54,7 +72,7 @@ export default function MyExams() {
         >
           <span className="flex items-center justify-center gap-2">
             <span className="material-symbols-outlined text-lg">pending</span>
-            Ongoing (0)
+            Ongoing ({ongoingExams.length})
           </span>
         </button>
       </div>
@@ -75,11 +93,11 @@ export default function MyExams() {
                       </span>
                     </div>
                   )}
-                  {exam.status === 'graded' && exam.score && (
+                  {exam.status === 'graded' && (exam.score !== undefined || exam.totalScore !== undefined) && (
                     <div className="absolute right-4 top-4">
                       <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-100 px-3 py-1.5 text-xs font-medium text-emerald-700 ring-1 ring-emerald-200">
                         <span className="material-symbols-outlined text-sm">check_circle</span>
-                        Score: {exam.score}/{exam.totalMarks}
+                        Score: {exam.score || exam.totalScore}/{exam.totalMarks || exam.maxScore}
                       </span>
                     </div>
                   )}
@@ -95,11 +113,23 @@ export default function MyExams() {
           )}
         </div>
       ) : (
-        <EmptyState
-          icon="pending"
-          title="No ongoing exams"
-          description="You don't have any exams in progress"
-        />
+        <div>
+          {ongoingExams.length > 0 ? (
+            <div className="grid gap-6 lg:grid-cols-2">
+              {ongoingExams.map((exam) => (
+                <div key={exam.id} className="relative">
+                  <ExamCard exam={exam} role="student" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              icon="pending"
+              title="No ongoing exams"
+              description="You don't have any exams in progress"
+            />
+          )}
+        </div>
       )}
     </div>
   );

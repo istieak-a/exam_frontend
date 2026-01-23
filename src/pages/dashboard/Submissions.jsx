@@ -2,19 +2,40 @@
 
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { submissions, teacherExams } from '../../data/mockData';
+import { getAllSubmissions, getTeacherExams } from '../../services/examService';
 
 export default function Submissions() {
   const [isLoading, setIsLoading] = useState(true);
+  const [submissions, setSubmissions] = useState([]);
+  const [exams, setExams] = useState([]);
   const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'pending', 'graded', 'in-review'
   const [selectedExam, setSelectedExam] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 600);
-    return () => clearTimeout(timer);
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Fetch submissions and exams in parallel
+        const [submissionsData, examsData] = await Promise.all([
+          getAllSubmissions(),
+          getTeacherExams(),
+        ]);
+        
+        const submissionsList = Array.isArray(submissionsData) ? submissionsData : submissionsData?.content || [];
+        const examsList = Array.isArray(examsData) ? examsData : examsData?.content || [];
+        
+        setSubmissions(submissionsList);
+        setExams(examsList);
+      } catch (err) {
+        console.error('Failed to fetch submissions:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
   const filteredSubmissions = submissions.filter((submission) => {
@@ -168,7 +189,7 @@ export default function Submissions() {
                 }}
               >
                 <option value="all">All Exams</option>
-                {teacherExams.filter(e => e.status === 'published').map((exam) => (
+                {exams.filter(e => ['published', 'active', 'completed'].includes(e.status?.toLowerCase())).map((exam) => (
                   <option key={exam.id} value={exam.title}>
                     {exam.title}
                   </option>

@@ -2,7 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { teacherExams, examQuestions } from '../../data/mockData';
+import { 
+  createExam, 
+  updateExam, 
+  getExamById, 
+  parseExamResponse 
+} from '../../services/examService';
 
 export default function CreateExam() {
   const [searchParams] = useSearchParams();
@@ -11,6 +16,7 @@ export default function CreateExam() {
   const isEditMode = !!editId;
   
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [examType, setExamType] = useState('mcq'); // 'mcq' or 'cq'
   const [examData, setExamData] = useState({
     title: '',
@@ -26,68 +32,180 @@ export default function CreateExam() {
   });
   const [questions, setQuestions] = useState([]);
   const [showQuestionForm, setShowQuestionForm] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [submitError, setSubmitError] = useState(null);
 
   useEffect(() => {
-    // Load exam data if in edit mode
-    if (isEditMode) {
-      const examToEdit = teacherExams.find(e => e.id === editId);
-      if (examToEdit) {
-        setExamData({
-          title: examToEdit.title || '',
-          course: examToEdit.subject || '',
-          description: examToEdit.description || '',
-          duration: examToEdit.duration?.toString() || '',
-          totalMarks: examToEdit.totalMarks?.toString() || '',
-          passingMarks: examToEdit.passingMarks?.toString() || '',
-          startDate: examToEdit.startDate || '',
-          startTime: examToEdit.startTime || '',
-          endDate: examToEdit.dueDate || '',
-          endTime: examToEdit.endTime || '',
-        });
-        
-        // Load questions for this exam
-        const existingQuestions = examQuestions[editId] || [];
-        setQuestions(existingQuestions);
-        
-        // Set exam type based on questions
-        if (existingQuestions.length > 0) {
-          const hasMCQ = existingQuestions.some(q => q.type === 'mcq');
-          setExamType(hasMCQ ? 'mcq' : 'cq');
+    const loadExamData = async () => {
+      if (isEditMode) {
+        try {
+          const response = await getExamById(editId, { includeQuestions: true });
+          const exam = parseExamResponse(response);
+          
+          if (exam) {
+            setExamData({
+              title: exam.title || '',
+              course: exam.course || '',
+              description: exam.description || '',
+              duration: exam.duration?.toString() || '',
+              totalMarks: exam.totalMarks?.toString() || '',
+              passingMarks: exam.passingMarks?.toString() || '',
+              startDate: exam.startDate || '',
+              startTime: exam.startTime || '',
+              endDate: exam.endDate || '',
+              endTime: exam.endTime || '',
+            });
+            setQuestions(exam.questions || []);
+            setExamType(exam.examType || 'mcq');
+          }
+        } catch (error) {
+          console.error('Failed to load exam data:', error);
         }
       }
-    }
-    
-    const timer = setTimeout(() => {
       setIsLoading(false);
-    }, 600);
-    return () => clearTimeout(timer);
+    };
+    
+    loadExamData();
   }, [editId, isEditMode]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setExamData((prev) => ({ ...prev, [name]: value }));
+    // Clear error for this field when user starts typing
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: null }));
+    }
   };
 
   const addQuestion = (question) => {
     setQuestions([...questions, { ...question, id: Date.now() }]);
     setShowQuestionForm(false);
+    // Clear questions error when adding a question
+    if (errors.questions) {
+      setErrors((prev) => ({ ...prev, questions: null }));
+    }
   };
 
   const removeQuestion = (id) => {
     setQuestions(questions.filter((q) => q.id !== id));
   };
 
-  const handleSubmit = (e) => {
+  // Client-side validation
+  const validateForm = () => {
+    const newErrors = {};
+    
+    if (!examData.title?.trim()) {
+      newErrors.title = 'Title is required';
+    }
+    if (!examData.course?.trim()) {
+      newErrors.course = 'Course is required';
+    }
+    if (!examData.duration || parseInt(examData.duration, 10) <= 0) {
+      newErrors.duration = 'Duration must be greater than 0';
+    }
+    if (!examData.totalMarks || parseInt(examData.totalMarks, 10) <= 0) {
+      newErrors.totalMarks = 'Total marks must be greater than 0';
+    }
+    if (!examData.passingMarks || parseInt(examData.passingMarks, 10) <= 0) {
+      newErrors.passingMarks = 'Passing marks must be greater than 0';
+    }
+    if (parseInt(examData.passingMarks, 10) > parseInt(examData.totalMarks, 10)) {
+      newErrors.passingMarks = 'Passing marks cannot exceed total marks';
+    }
+    if (!examData.startDate) {
+      newErrors.startDate = 'Start date is required';
+    }
+    if (!examData.startTime) {
+      newErrors.startTime = 'Start time is required';
+    }
+    if (!examData.endDate) {
+      newErrors.endDate = 'End date is required';
+    }
+    if (!examData.endTime) {
+      newErrors.endTime = 'End time is required';
+    }
+    
+    // Validate date range
+    if (examData.startDate && examData.endDate && examData.startTime && examData.endTime) {
+      const startDateTime = new Date(`${examData.startDate}T${examData.startTime}`);
+      const endDateTime = new Date(`${examData.endDate}T${examData.endTime}`);
+      if (endDateTime <= startDateTime) {
+        newErrors.endDate = 'End date/time must be after start date/time';
+      }
+    }
+    
+    // Validate questions
+    if (questions.length === 0) {
+      newErrors.questions = 'At least one question is required';
+    }
+    
+    // Validate total marks equals sum of question marks
+    const questionMarksSum = questions.reduce((sum, q) => sum + parseInt(q.marks || 0, 10), 0);
+    if (questions.length > 0 && questionMarksSum !== parseInt(examData.totalMarks, 10)) {
+      newErrors.totalMarks = `Total marks (${examData.totalMarks}) must equal sum of question marks (${questionMarksSum})`;
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Exam Data:', examData);
-    console.log('Questions:', questions);
-    // Here you would typically send this to your backend
-    if (isEditMode) {
-      alert('Exam updated successfully!');
-      navigate(`/dashboard/exams/${editId}`);
-    } else {
-      alert('Exam created successfully!');
-      navigate('/dashboard/exams');
+    setSubmitError(null);
+    
+    // Client-side validation
+    if (!validateForm()) {
+      return;
+    }
+    
+    setIsSaving(true);
+    
+    try {
+      const payload = {
+        ...examData,
+        examType,
+        questions,
+      };
+      
+      if (isEditMode) {
+        await updateExam(editId, payload);
+        navigate(`/dashboard/exam/${editId}`);
+      } else {
+        await createExam(payload);
+        navigate('/dashboard/exams');
+      }
+    } catch (error) {
+      console.error('Failed to save exam:', error);
+      
+      // Handle structured validation errors from backend
+      if (error.status === 400 && error.validationErrors) {
+        // Map backend field names to frontend field names if needed
+        const backendErrors = error.validationErrors;
+        const mappedErrors = {};
+        
+        Object.keys(backendErrors).forEach(key => {
+          // Handle field name mapping (e.g., durationMinutes -> duration)
+          const fieldMap = {
+            durationMinutes: 'duration',
+          };
+          const frontendKey = fieldMap[key] || key;
+          mappedErrors[frontendKey] = backendErrors[key];
+        });
+        
+        setErrors(mappedErrors);
+        setSubmitError('Please fix the validation errors below');
+      } else if (error.status === 409) {
+        // Conflict error - exam has submissions
+        setSubmitError(error.message || 'Cannot update exam: Students have already submitted answers');
+      } else if (error.status === 403) {
+        setSubmitError('You do not have permission to perform this action');
+      } else if (error.status === 404) {
+        setSubmitError('Exam not found');
+      } else {
+        setSubmitError(error.message || 'Failed to save exam. Please try again.');
+      }
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -97,6 +215,31 @@ export default function CreateExam() {
 
   return (
     <div className="space-y-6">
+      {/* Error Alert */}
+      {submitError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+          <div className="flex items-start gap-3">
+            <span className="material-symbols-outlined text-red-600">error</span>
+            <div>
+              <h3 className="font-medium text-red-800">{submitError}</h3>
+              {Object.keys(errors).length > 0 && (
+                <ul className="mt-2 list-inside list-disc text-sm text-red-700">
+                  {Object.entries(errors).map(([field, message]) => (
+                    <li key={field}>{message}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <button
+              onClick={() => setSubmitError(null)}
+              className="ml-auto text-red-600 hover:text-red-800"
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -111,21 +254,32 @@ export default function CreateExam() {
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => navigate(isEditMode ? `/dashboard/exams/${editId}` : '/dashboard/exams')}
-            className="flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2.5 font-medium text-slate-700 transition-all hover:bg-slate-50"
+            onClick={() => navigate(isEditMode ? `/dashboard/exam/${editId}` : '/dashboard/exams')}
+            disabled={isSaving}
+            className="flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2.5 font-medium text-slate-700 transition-all hover:bg-slate-50 disabled:opacity-50"
           >
             <span className="material-symbols-outlined text-xl">close</span>
             Cancel
           </button>
           <button
             onClick={handleSubmit}
+            disabled={isSaving}
             style={{ background: 'linear-gradient(to right, #0084D1, #006BB3)' }}
-            className="flex items-center gap-2 rounded-lg px-5 py-2.5 font-medium text-white shadow-lg transition-all hover:shadow-xl hover:scale-105"
+            className="flex items-center gap-2 rounded-lg px-5 py-2.5 font-medium text-white shadow-lg transition-all hover:shadow-xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
           >
-            <span className="material-symbols-outlined text-xl">
-              {isEditMode ? 'save' : 'check_circle'}
-            </span>
-            {isEditMode ? 'Update Exam' : 'Publish Exam'}
+            {isSaving ? (
+              <>
+                <span className="material-symbols-outlined text-xl animate-spin">progress_activity</span>
+                Saving...
+              </>
+            ) : (
+              <>
+                <span className="material-symbols-outlined text-xl">
+                  {isEditMode ? 'save' : 'check_circle'}
+                </span>
+                {isEditMode ? 'Update Exam' : 'Publish Exam'}
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -216,16 +370,25 @@ export default function CreateExam() {
               value={examData.title}
               onChange={handleInputChange}
               placeholder="e.g., Final Exam 2026"
-              className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm focus:outline-none"
+              className={`w-full rounded-lg border px-4 py-2.5 text-sm focus:outline-none ${
+                errors.title ? 'border-red-500 bg-red-50' : 'border-slate-300'
+              }`}
               onFocus={(e) => {
-                e.target.style.borderColor = '#0084D1';
-                e.target.style.boxShadow = '0 0 0 3px rgba(0, 132, 209, 0.1)';
+                if (!errors.title) {
+                  e.target.style.borderColor = '#0084D1';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(0, 132, 209, 0.1)';
+                }
               }}
               onBlur={(e) => {
-                e.target.style.borderColor = '#cbd5e1';
-                e.target.style.boxShadow = 'none';
+                if (!errors.title) {
+                  e.target.style.borderColor = '#cbd5e1';
+                  e.target.style.boxShadow = 'none';
+                }
               }}
             />
+            {errors.title && (
+              <p className="mt-1 text-sm text-red-600">{errors.title}</p>
+            )}
           </div>
 
           <div>
@@ -238,16 +401,25 @@ export default function CreateExam() {
               value={examData.course}
               onChange={handleInputChange}
               placeholder="e.g., Advanced Mathematics"
-              className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm focus:outline-none"
+              className={`w-full rounded-lg border px-4 py-2.5 text-sm focus:outline-none ${
+                errors.course ? 'border-red-500 bg-red-50' : 'border-slate-300'
+              }`}
               onFocus={(e) => {
-                e.target.style.borderColor = '#0084D1';
-                e.target.style.boxShadow = '0 0 0 3px rgba(0, 132, 209, 0.1)';
+                if (!errors.course) {
+                  e.target.style.borderColor = '#0084D1';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(0, 132, 209, 0.1)';
+                }
               }}
               onBlur={(e) => {
-                e.target.style.borderColor = '#cbd5e1';
-                e.target.style.boxShadow = 'none';
+                if (!errors.course) {
+                  e.target.style.borderColor = '#cbd5e1';
+                  e.target.style.boxShadow = 'none';
+                }
               }}
             />
+            {errors.course && (
+              <p className="mt-1 text-sm text-red-600">{errors.course}</p>
+            )}
           </div>
 
           <div className="md:col-span-2">
@@ -282,16 +454,26 @@ export default function CreateExam() {
               value={examData.duration}
               onChange={handleInputChange}
               placeholder="60"
-              className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm focus:outline-none"
+              min="1"
+              className={`w-full rounded-lg border px-4 py-2.5 text-sm focus:outline-none ${
+                errors.duration ? 'border-red-500 bg-red-50' : 'border-slate-300'
+              }`}
               onFocus={(e) => {
-                e.target.style.borderColor = '#0084D1';
-                e.target.style.boxShadow = '0 0 0 3px rgba(0, 132, 209, 0.1)';
+                if (!errors.duration) {
+                  e.target.style.borderColor = '#0084D1';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(0, 132, 209, 0.1)';
+                }
               }}
               onBlur={(e) => {
-                e.target.style.borderColor = '#cbd5e1';
-                e.target.style.boxShadow = 'none';
+                if (!errors.duration) {
+                  e.target.style.borderColor = '#cbd5e1';
+                  e.target.style.boxShadow = 'none';
+                }
               }}
             />
+            {errors.duration && (
+              <p className="mt-1 text-sm text-red-600">{errors.duration}</p>
+            )}
           </div>
 
           <div>
@@ -304,16 +486,26 @@ export default function CreateExam() {
               value={examData.totalMarks}
               onChange={handleInputChange}
               placeholder="100"
-              className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm focus:outline-none"
+              min="1"
+              className={`w-full rounded-lg border px-4 py-2.5 text-sm focus:outline-none ${
+                errors.totalMarks ? 'border-red-500 bg-red-50' : 'border-slate-300'
+              }`}
               onFocus={(e) => {
-                e.target.style.borderColor = '#0084D1';
-                e.target.style.boxShadow = '0 0 0 3px rgba(0, 132, 209, 0.1)';
+                if (!errors.totalMarks) {
+                  e.target.style.borderColor = '#0084D1';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(0, 132, 209, 0.1)';
+                }
               }}
               onBlur={(e) => {
-                e.target.style.borderColor = '#cbd5e1';
-                e.target.style.boxShadow = 'none';
+                if (!errors.totalMarks) {
+                  e.target.style.borderColor = '#cbd5e1';
+                  e.target.style.boxShadow = 'none';
+                }
               }}
             />
+            {errors.totalMarks && (
+              <p className="mt-1 text-sm text-red-600">{errors.totalMarks}</p>
+            )}
           </div>
 
           <div>
@@ -326,16 +518,26 @@ export default function CreateExam() {
               value={examData.passingMarks}
               onChange={handleInputChange}
               placeholder="40"
-              className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm focus:outline-none"
+              min="0"
+              className={`w-full rounded-lg border px-4 py-2.5 text-sm focus:outline-none ${
+                errors.passingMarks ? 'border-red-500 bg-red-50' : 'border-slate-300'
+              }`}
               onFocus={(e) => {
-                e.target.style.borderColor = '#0084D1';
-                e.target.style.boxShadow = '0 0 0 3px rgba(0, 132, 209, 0.1)';
+                if (!errors.passingMarks) {
+                  e.target.style.borderColor = '#0084D1';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(0, 132, 209, 0.1)';
+                }
               }}
               onBlur={(e) => {
-                e.target.style.borderColor = '#cbd5e1';
-                e.target.style.boxShadow = 'none';
+                if (!errors.passingMarks) {
+                  e.target.style.borderColor = '#cbd5e1';
+                  e.target.style.boxShadow = 'none';
+                }
               }}
             />
+            {errors.passingMarks && (
+              <p className="mt-1 text-sm text-red-600">{errors.passingMarks}</p>
+            )}
           </div>
 
           <div>
@@ -347,16 +549,25 @@ export default function CreateExam() {
               name="startDate"
               value={examData.startDate}
               onChange={handleInputChange}
-              className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm focus:outline-none"
+              className={`w-full rounded-lg border px-4 py-2.5 text-sm focus:outline-none ${
+                errors.startDate ? 'border-red-500 bg-red-50' : 'border-slate-300'
+              }`}
               onFocus={(e) => {
-                e.target.style.borderColor = '#0084D1';
-                e.target.style.boxShadow = '0 0 0 3px rgba(0, 132, 209, 0.1)';
+                if (!errors.startDate) {
+                  e.target.style.borderColor = '#0084D1';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(0, 132, 209, 0.1)';
+                }
               }}
               onBlur={(e) => {
-                e.target.style.borderColor = '#cbd5e1';
-                e.target.style.boxShadow = 'none';
+                if (!errors.startDate) {
+                  e.target.style.borderColor = '#cbd5e1';
+                  e.target.style.boxShadow = 'none';
+                }
               }}
             />
+            {errors.startDate && (
+              <p className="mt-1 text-sm text-red-600">{errors.startDate}</p>
+            )}
           </div>
 
           <div>
@@ -368,16 +579,25 @@ export default function CreateExam() {
               name="startTime"
               value={examData.startTime}
               onChange={handleInputChange}
-              className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm focus:outline-none"
+              className={`w-full rounded-lg border px-4 py-2.5 text-sm focus:outline-none ${
+                errors.startTime ? 'border-red-500 bg-red-50' : 'border-slate-300'
+              }`}
               onFocus={(e) => {
-                e.target.style.borderColor = '#0084D1';
-                e.target.style.boxShadow = '0 0 0 3px rgba(0, 132, 209, 0.1)';
+                if (!errors.startTime) {
+                  e.target.style.borderColor = '#0084D1';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(0, 132, 209, 0.1)';
+                }
               }}
               onBlur={(e) => {
-                e.target.style.borderColor = '#cbd5e1';
-                e.target.style.boxShadow = 'none';
+                if (!errors.startTime) {
+                  e.target.style.borderColor = '#cbd5e1';
+                  e.target.style.boxShadow = 'none';
+                }
               }}
             />
+            {errors.startTime && (
+              <p className="mt-1 text-sm text-red-600">{errors.startTime}</p>
+            )}
           </div>
 
           <div>
@@ -389,16 +609,25 @@ export default function CreateExam() {
               name="endDate"
               value={examData.endDate}
               onChange={handleInputChange}
-              className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm focus:outline-none"
+              className={`w-full rounded-lg border px-4 py-2.5 text-sm focus:outline-none ${
+                errors.endDate ? 'border-red-500 bg-red-50' : 'border-slate-300'
+              }`}
               onFocus={(e) => {
-                e.target.style.borderColor = '#0084D1';
-                e.target.style.boxShadow = '0 0 0 3px rgba(0, 132, 209, 0.1)';
+                if (!errors.endDate) {
+                  e.target.style.borderColor = '#0084D1';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(0, 132, 209, 0.1)';
+                }
               }}
               onBlur={(e) => {
-                e.target.style.borderColor = '#cbd5e1';
-                e.target.style.boxShadow = 'none';
+                if (!errors.endDate) {
+                  e.target.style.borderColor = '#cbd5e1';
+                  e.target.style.boxShadow = 'none';
+                }
               }}
             />
+            {errors.endDate && (
+              <p className="mt-1 text-sm text-red-600">{errors.endDate}</p>
+            )}
           </div>
 
           <div>
@@ -410,28 +639,42 @@ export default function CreateExam() {
               name="endTime"
               value={examData.endTime}
               onChange={handleInputChange}
-              className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm focus:outline-none"
+              className={`w-full rounded-lg border px-4 py-2.5 text-sm focus:outline-none ${
+                errors.endTime ? 'border-red-500 bg-red-50' : 'border-slate-300'
+              }`}
               onFocus={(e) => {
-                e.target.style.borderColor = '#0084D1';
-                e.target.style.boxShadow = '0 0 0 3px rgba(0, 132, 209, 0.1)';
+                if (!errors.endTime) {
+                  e.target.style.borderColor = '#0084D1';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(0, 132, 209, 0.1)';
+                }
               }}
               onBlur={(e) => {
-                e.target.style.borderColor = '#cbd5e1';
-                e.target.style.boxShadow = 'none';
+                if (!errors.endTime) {
+                  e.target.style.borderColor = '#cbd5e1';
+                  e.target.style.boxShadow = 'none';
+                }
               }}
             />
+            {errors.endTime && (
+              <p className="mt-1 text-sm text-red-600">{errors.endTime}</p>
+            )}
           </div>
         </div>
       </div>
 
       {/* Questions Section */}
-      <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-200">
+      <div className={`rounded-2xl bg-white p-6 shadow-sm border ${
+        errors.questions ? 'border-red-500' : 'border-slate-200'
+      }`}>
         <div className="mb-4 flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold text-slate-900">Questions</h2>
             <p className="text-sm text-slate-600">
               {questions.length} question{questions.length !== 1 ? 's' : ''} added
             </p>
+            {errors.questions && (
+              <p className="mt-1 text-sm text-red-600">{errors.questions}</p>
+            )}
           </div>
           <button
             onClick={() => setShowQuestionForm(true)}

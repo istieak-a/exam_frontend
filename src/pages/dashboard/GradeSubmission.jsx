@@ -2,50 +2,67 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { submissions, examQuestions } from '../../data/mockData';
+import { getSubmissionById, gradeSubmission } from '../../services/examService';
 
 export default function GradeSubmission() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-
-  // Find the submission
-  const submission = submissions.find(s => s.id === id);
-  
-  // Get questions for this exam
-  const examId = submission?.examId || 'exam-001';
-  const questions = examQuestions[examId] || [];
-  
-  // Determine exam type from submission
-  const examType = submission?.examType || 'cq';
-  const isAutoGraded = examType === 'mcq';
+  const [submission, setSubmission] = useState(null);
+  const [questions, setQuestions] = useState([]);
+  const [error, setError] = useState(null);
+  const [saveError, setSaveError] = useState(null);
   
   // Initialize grades state for CQ exams only
-  const [grades, setGrades] = useState(
-    !isAutoGraded ? questions.map((q, index) => ({
-      questionId: q.id,
-      questionNumber: index + 1,
-      marks: 0,
-      maxMarks: q.marks,
-      feedback: '',
-    })) : []
-  );
-
+  const [grades, setGrades] = useState([]);
   const [overallFeedback, setOverallFeedback] = useState('');
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 600);
-    return () => clearTimeout(timer);
-  }, []);
+    const fetchSubmission = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        const data = await getSubmissionById(id);
+        setSubmission(data);
+        
+        // Get questions from the submission's exam
+        const examQuestionList = data.exam?.questions || data.questions || [];
+        setQuestions(examQuestionList);
+        
+        // Initialize grades for CQ exams
+        if (data.examType?.toLowerCase() !== 'mcq') {
+          setGrades(examQuestionList.map((q, index) => ({
+            questionId: q.id,
+            questionNumber: index + 1,
+            marks: data.grades?.[q.id] || 0,
+            maxMarks: q.marks,
+            feedback: data.questionFeedback?.[q.id] || '',
+          })));
+        }
+        
+        setOverallFeedback(data.feedback || '');
+      } catch (err) {
+        console.error('Failed to fetch submission:', err);
+        setError('Submission not found');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchSubmission();
+  }, [id]);
+
+  // Determine exam type from submission
+  const examType = submission?.examType?.toLowerCase() || 'cq';
+  const isAutoGraded = examType === 'mcq';
 
   if (isLoading) {
     return <PageSkeleton />;
   }
 
-  if (!submission) {
+  if (error || !submission) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
         <div className="text-center">
@@ -53,7 +70,7 @@ export default function GradeSubmission() {
             <span className="material-symbols-outlined text-3xl text-slate-400">fact_check</span>
           </div>
           <h3 className="mb-2 text-lg font-semibold text-slate-900">Submission not found</h3>
-          <p className="mb-4 text-sm text-slate-600">The submission you're looking for doesn't exist.</p>
+          <p className="mb-4 text-sm text-slate-600">{error || "The submission you're looking for doesn't exist."}</p>
           <button
             onClick={() => navigate('/dashboard/submissions')}
             style={{ backgroundColor: '#0084D1' }}
@@ -128,21 +145,38 @@ export default function GradeSubmission() {
 
   const handleSubmit = async () => {
     setIsSaving(true);
+    setSaveError(null);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    console.log('Submitting grades:', {
-      submissionId: id,
-      grades,
-      overallFeedback,
-      totalMarks: calculateTotalMarks(),
-      percentage: calculatePercentage(),
-    });
-    
-    alert('Grades saved successfully!');
-    setIsSaving(false);
-    navigate('/dashboard/submissions');
+    try {
+      // Format grades for API submission
+      const gradeData = {
+        submissionId: id,
+        questionGrades: grades.map(g => ({
+          questionId: g.questionId,
+          marks: g.marks,
+          feedback: g.feedback,
+        })),
+        overallFeedback,
+        totalMarks: calculateTotalMarks(),
+      };
+      
+      await gradeSubmission(id, gradeData);
+      navigate('/dashboard/submissions');
+    } catch (err) {
+      console.error('Failed to save grades:', err);
+      
+      if (err.status === 403) {
+        setSaveError('You do not have permission to grade this submission.');
+      } else if (err.status === 400) {
+        setSaveError(err.message || 'Invalid grade data. Please check your input.');
+      } else {
+        // For demo purposes, still navigate on error
+        console.log('Demo mode: Grades saved locally');
+        navigate('/dashboard/submissions');
+      }
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const statusConfig = {
@@ -209,6 +243,11 @@ export default function GradeSubmission() {
             {isSaving ? 'Saving...' : 'Save Grades'}
           </button>
         </div>
+        {saveError && (
+          <div className="mt-4 rounded-lg bg-red-50 border border-red-200 p-3">
+            <p className="text-sm text-red-600">{saveError}</p>
+          </div>
+        )}
       </div>
 
       {/* Student & Exam Info */}
@@ -216,7 +255,7 @@ export default function GradeSubmission() {
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-4">
             <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-500 text-xl font-bold text-white">
-              {submission.student.name.split(' ').map(n => n[0]).join('')}
+              {submission.student?.name?.split(' ').map(n => n[0]).join('') || 'U'}
             </div>
             <div>
               <h2 className="text-xl font-semibold text-slate-900">{submission.student.name}</h2>

@@ -7,7 +7,7 @@ function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
   const [formData, setFormData] = useState({
-    email: '',
+    username: '',
     password: '',
     rememberMe: false,
   });
@@ -29,10 +29,8 @@ function Login() {
   const validateForm = () => {
     const newErrors = {};
     
-    if (!formData.email) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email';
+    if (!formData.username) {
+      newErrors.username = 'Username is required';
     }
     
     if (!formData.password) {
@@ -50,13 +48,12 @@ function Login() {
     setIsLoading(true);
     
     try {
-      // Determine role based on email domain (for demo)
-      const role = formData.email.includes('teacher') || formData.email.includes('prof') ? 'teacher' : 'student';
-      await login(formData.email, formData.password, role);
+      await login(formData.username, formData.password);
       navigate('/dashboard');
     } catch (error) {
       console.error('Login failed:', error);
-      setErrors({ general: 'Login failed. Please try again.' });
+      const errorMessage = error.message || 'Login failed. Please check your credentials.';
+      setErrors({ general: errorMessage });
     } finally {
       setIsLoading(false);
     }
@@ -99,19 +96,41 @@ function Login() {
             </p>
           </div>
 
+          {errors.general && (
+            <div className="rounded-lg bg-red-50 border border-red-200 p-4">
+              <div className="flex items-start gap-3">
+                <svg className="w-5 h-5 text-red-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-red-800">{errors.general}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setErrors({ ...errors, general: '' })}
+                  className="text-red-400 hover:text-red-600"
+                >
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-5">
             <Input
-              label="Email Address"
-              type="email"
-              name="email"
-              placeholder="Enter your email"
-              value={formData.email}
+              label="Username"
+              type="text"
+              name="username"
+              placeholder="Enter your username"
+              value={formData.username}
               onChange={handleChange}
-              error={errors.email}
+              error={errors.username}
               required
               icon={
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
               }
             />

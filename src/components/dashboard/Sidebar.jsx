@@ -39,12 +39,18 @@ function SidebarContent({ pathname, onClose }) {
   };
 
   const getInitials = (name) => {
+    if (!name) return 'U';
     return name
       .split(' ')
       .map((n) => n[0])
       .join('')
       .toUpperCase()
       .slice(0, 2);
+  };
+
+  // Get user display name (handle both name and fullName fields)
+  const getUserName = () => {
+    return user?.name || user?.fullName || user?.username || 'User';
   };
 
   return (
@@ -115,10 +121,10 @@ function SidebarContent({ pathname, onClose }) {
       <div className="border-t border-slate-200/80 p-3">
         <div className="flex items-center gap-3 rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-100">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-bold text-white">
-            {user ? getInitials(user.name) : 'U'}
+            {getInitials(getUserName())}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="truncate text-sm font-semibold text-slate-800">{user?.name || 'User'}</p>
+            <p className="truncate text-sm font-semibold text-slate-800">{getUserName()}</p>
             <p className="truncate text-xs text-slate-500">
               {isTeacher ? '👨‍🏫 Teacher' : '👨‍🎓 Student'}
             </p>

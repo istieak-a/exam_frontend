@@ -2,25 +2,37 @@
 
 import { useState, useEffect } from 'react';
 import { ExamCard, ExamCardSkeleton } from '../../components/dashboard';
-import { availableExams } from '../../data/mockData';
+import { getAvailableExams } from '../../services/examService';
 
 export default function AvailableExams() {
   const [isLoading, setIsLoading] = useState(true);
+  const [exams, setExams] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterDifficulty, setFilterDifficulty] = useState('all');
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 600);
-    return () => clearTimeout(timer);
+    const fetchExams = async () => {
+      try {
+        setIsLoading(true);
+        const data = await getAvailableExams();
+        setExams(data);
+      } catch (err) {
+        console.error('Failed to fetch available exams:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchExams();
   }, []);
 
-  const filteredExams = availableExams.filter((exam) => {
+  const filteredExams = exams.filter((exam) => {
+    const course = exam.course || exam.subject || '';
     const matchesSearch = exam.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      exam.subject.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || exam.status === filterStatus;
+      course.toLowerCase().includes(searchQuery.toLowerCase());
+    const status = exam.status?.toLowerCase();
+    const matchesStatus = filterStatus === 'all' || status === filterStatus;
     const matchesDifficulty = filterDifficulty === 'all' || exam.difficulty === filterDifficulty;
     return matchesSearch && matchesStatus && matchesDifficulty;
   });
@@ -64,8 +76,9 @@ export default function AvailableExams() {
           className="rounded-lg border-0 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm ring-1 ring-slate-200/80 focus:ring-2 focus:ring-primary"
         >
           <option value="all">All Status</option>
+          <option value="published">Published</option>
           <option value="active">Active</option>
-          <option value="scheduled">Scheduled</option>
+          <option value="completed">Completed</option>
         </select>
 
         {/* Difficulty Filter */}

@@ -10,10 +10,25 @@ import {
   ExamCard,
   ExamCardSkeleton,
 } from '../../components/dashboard';
-import { studentStats, availableExams, upcomingExams } from '../../data/mockData';
+import { getAvailableExams, getMySubmissions } from '../../services/examService';
 
 // Upcoming Exam Item Component
 function UpcomingExamItem({ exam }) {
+  // Format date from timestamp if available
+  const formatDate = (exam) => {
+    if (exam.startDateTime) {
+      return new Date(exam.startDateTime).toLocaleDateString();
+    }
+    return exam.date || 'TBD';
+  };
+  
+  const formatTime = (exam) => {
+    if (exam.startDateTime) {
+      return new Date(exam.startDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    return exam.time || 'TBD';
+  };
+
   return (
     <div className="group flex items-center justify-between rounded-lg p-4 transition-colors hover:bg-slate-50">
       <div className="flex items-start gap-3">
@@ -22,15 +37,15 @@ function UpcomingExamItem({ exam }) {
         </div>
         <div>
           <h4 className="font-semibold text-slate-900">{exam.title}</h4>
-          <p className="text-sm text-slate-600">{exam.course}</p>
+          <p className="text-sm text-slate-600">{exam.course || exam.subject}</p>
           <div className="mt-1 flex items-center gap-3 text-xs text-slate-500">
             <span className="flex items-center gap-1">
               <span className="material-symbols-outlined text-sm">calendar_today</span>
-              {exam.date}
+              {formatDate(exam)}
             </span>
             <span className="flex items-center gap-1">
               <span className="material-symbols-outlined text-sm">schedule</span>
-              {exam.time}
+              {formatTime(exam)}
             </span>
           </div>
         </div>
@@ -47,14 +62,60 @@ function UpcomingExamItem({ exam }) {
 
 export default function StudentDashboard() {
   const [isLoading, setIsLoading] = useState(true);
+  const [availableExams, setAvailableExams] = useState([]);
+  const [stats, setStats] = useState({
+    availableExams: 0,
+    completedExams: 0,
+    averageScore: 0,
+    pendingResults: 0,
+  });
 
-  // Simulate loading
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 800);
-    return () => clearTimeout(timer);
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Fetch available exams and submissions in parallel
+        const [examsData, submissionsData] = await Promise.all([
+          getAvailableExams(),
+          getMySubmissions(),
+        ]);
+        
+        setAvailableExams(examsData);
+        
+        // Calculate stats from submissions
+        const completedCount = submissionsData.filter(s => 
+          s.status === 'graded' || s.status === 'completed'
+        ).length;
+        const pendingCount = submissionsData.filter(s => 
+          s.status === 'pending' || s.status === 'in-review'
+        ).length;
+        const gradedSubmissions = submissionsData.filter(s => s.totalScore !== undefined);
+        const avgScore = gradedSubmissions.length > 0
+          ? gradedSubmissions.reduce((sum, s) => sum + (s.percentage || 0), 0) / gradedSubmissions.length
+          : 0;
+        
+        setStats({
+          availableExams: examsData?.length || 0,
+            completedExams: completedCount,
+            averageScore: avgScore.toFixed(1),
+            pendingResults: pendingCount,
+          });
+      } catch (err) {
+        console.error('Failed to fetch dashboard data:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
+
+  // Get upcoming exams (published but not started yet)
+  const upcomingExams = availableExams.filter(exam => {
+    const status = (exam.status || '').toLowerCase();
+    return status === 'published' || (status === 'active' && exam.startDateTime > Date.now());
+  }).slice(0, 3);
 
   if (isLoading) {
     return <DashboardSkeleton />;
@@ -66,7 +127,7 @@ export default function StudentDashboard() {
       <div className="rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 p-6 text-white shadow-lg">
         <h1 className="text-2xl font-bold">Welcome back, Student! 👋</h1>
         <p className="mt-2 text-white/90">
-          You have {studentStats.availableExams} exams available to take
+          You have {stats.availableExams} exams available to take
         </p>
       </div>
 
@@ -74,29 +135,28 @@ export default function StudentDashboard() {
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Available Exams"
-          value={studentStats.availableExams}
+          value={stats.availableExams}
           subtitle="Ready to take"
           icon="quiz"
           variant="primary"
         />
         <StatCard
           title="Completed Exams"
-          value={studentStats.completedExams}
+          value={stats.completedExams}
           subtitle="All time"
           icon="task_alt"
           variant="success"
         />
         <StatCard
           title="Average Score"
-          value={`${studentStats.averageScore}%`}
+          value={`${stats.averageScore}%`}
           subtitle="Your performance"
           icon="trending_up"
           variant="info"
-          trend={{ direction: 'up', value: '+3.2%' }}
         />
         <StatCard
           title="Pending Results"
-          value={studentStats.pendingResults}
+          value={stats.pendingResults}
           subtitle="Being graded"
           icon="pending"
           variant="warning"

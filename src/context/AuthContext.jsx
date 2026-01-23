@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { login as apiLogin, signup as apiSignup, logout as apiLogout, getCurrentUser } from '../services/authService';
 
 const AuthContext = createContext(null);
 
@@ -16,64 +17,68 @@ export const AuthProvider = ({ children }) => {
 
   // Check for existing session on mount
   useEffect(() => {
-    const savedUser = localStorage.getItem('examhub_user');
-    if (savedUser) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch (error) {
-        console.error('Failed to parse saved user:', error);
-        localStorage.removeItem('examhub_user');
+    const checkSession = async () => {
+      const savedUser = localStorage.getItem('examhub_user');
+      if (savedUser) {
+        try {
+          // Try to validate the session with the backend
+          const userData = await getCurrentUser();
+          setUser(userData);
+          localStorage.setItem('examhub_user', JSON.stringify(userData));
+        } catch (error) {
+          console.error('Session validation failed:', error);
+          localStorage.removeItem('examhub_user');
+          setUser(null);
+        }
       }
-    }
-    setIsLoading(false);
+      setIsLoading(false);
+    };
+    
+    checkSession();
   }, []);
 
-  // Mock login function
-  const login = (email, password, role = 'student') => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const mockUser = {
-          id: Math.random().toString(36).substr(2, 9),
-          email: email,
-          name: role === 'teacher' ? 'Dr. Sarah Johnson' : 'Alex Thompson',
-          role: role, // 'teacher' or 'student'
-          avatar: null,
-          department: role === 'teacher' ? 'Computer Science' : null,
-          studentId: role === 'student' ? 'STU-2024-001' : null,
-          joinedDate: 'January 15, 2024',
-        };
-        setUser(mockUser);
-        localStorage.setItem('examhub_user', JSON.stringify(mockUser));
-        resolve(mockUser);
-      }, 1000);
-    });
+  // Login function with real API call
+  const login = async (username, password) => {
+    try {
+      const userData = await apiLogin(username, password);
+      setUser(userData);
+      localStorage.setItem('examhub_user', JSON.stringify(userData));
+      return userData;
+    } catch (error) {
+      console.error('Login failed:', error);
+      throw error;
+    }
   };
 
-  // Mock signup function
-  const signup = (name, email, password, role = 'student') => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const mockUser = {
-          id: Math.random().toString(36).substr(2, 9),
-          email: email,
-          name: name,
-          role: role,
-          avatar: null,
-          department: role === 'teacher' ? 'Computer Science' : null,
-          studentId: role === 'student' ? `STU-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000)}` : null,
-          joinedDate: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
-        };
-        setUser(mockUser);
-        localStorage.setItem('examhub_user', JSON.stringify(mockUser));
-        resolve(mockUser);
-      }, 1000);
-    });
+  // Signup function with real API call
+  const signup = async (username, email, password, fullName, role) => {
+    try {
+      const userData = await apiSignup({
+        username,
+        email,
+        password,
+        fullName,
+        role: role.toUpperCase(), // Convert to TEACHER or STUDENT
+      });
+      setUser(userData);
+      localStorage.setItem('examhub_user', JSON.stringify(userData));
+      return userData;
+    } catch (error) {
+      console.error('Signup failed:', error);
+      throw error;
+    }
   };
 
-  // Logout function
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('examhub_user');
+  // Logout function with real API call
+  const logout = async () => {
+    try {
+      await apiLogout();
+    } catch (error) {
+      console.error('Logout API call failed:', error);
+    } finally {
+      setUser(null);
+      localStorage.removeItem('examhub_user');
+    }
   };
 
   // Switch role (for demo purposes)
@@ -97,8 +102,8 @@ export const AuthProvider = ({ children }) => {
     user,
     isLoading,
     isAuthenticated: !!user,
-    isTeacher: user?.role === 'teacher',
-    isStudent: user?.role === 'student',
+    isTeacher: user?.role === 'TEACHER' || user?.role === 'teacher',
+    isStudent: user?.role === 'STUDENT' || user?.role === 'student',
     login,
     signup,
     logout,

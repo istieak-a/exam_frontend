@@ -2,26 +2,67 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { teacherExams, examQuestions } from '../../data/mockData';
+import { getExamById, deleteExam, updateExam } from '../../services/examService';
 
 export default function ExamDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
+  const [exam, setExam] = useState(null);
+  const [questions, setQuestions] = useState([]);
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' or 'questions'
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 600);
-    return () => clearTimeout(timer);
-  }, []);
+    const fetchExam = async () => {
+      try {
+        setIsLoading(true);
+        const response = await getExamById(id, { includeQuestions: true, includeStats: true });
+        
+        // Handle both direct response and wrapped response
+        const examData = response?.data || response;
+        setExam(examData);
+        setQuestions(examData?.questions || []);
+      } catch (err) {
+        console.error('Failed to fetch exam:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  // Find the exam by ID
-  const exam = teacherExams.find(e => e.id === id);
-  
-  // Get questions for this exam
-  const mockQuestions = examQuestions[id] || [];
+    fetchExam();
+  }, [id]);
+
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this exam? This action cannot be undone.')) {
+      return;
+    }
+    
+    try {
+      setIsDeleting(true);
+      await deleteExam(id);
+      navigate('/dashboard/exams');
+    } catch (err) {
+      console.error('Failed to delete exam:', err);
+      alert('Failed to delete exam. Please try again.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handlePublish = async () => {
+    try {
+      setIsPublishing(true);
+      await updateExam(id, { ...exam, status: 'PUBLISHED' });
+      setExam(prev => ({ ...prev, status: 'published' }));
+    } catch (err) {
+      console.error('Failed to publish exam:', err);
+      alert('Failed to publish exam. Please try again.');
+    } finally {
+      setIsPublishing(false);
+    }
+  };
 
   if (isLoading) {
     return <PageSkeleton />;
@@ -62,9 +103,33 @@ export default function ExamDetails() {
       bgColor: 'bg-amber-50',
       borderColor: 'border-amber-200',
     },
+    active: {
+      label: 'Active',
+      color: 'text-blue-700',
+      bgColor: 'bg-blue-50',
+      borderColor: 'border-blue-200',
+    },
+    completed: {
+      label: 'Completed',
+      color: 'text-purple-700',
+      bgColor: 'bg-purple-50',
+      borderColor: 'border-purple-200',
+    },
+    archived: {
+      label: 'Archived',
+      color: 'text-gray-600',
+      bgColor: 'bg-gray-100',
+      borderColor: 'border-gray-200',
+    },
   };
 
-  const status = statusConfig[exam.status];
+  const examStatus = (exam.status || 'draft').toLowerCase();
+  const status = statusConfig[examStatus] || statusConfig.draft;
+  
+  // Get course/subject and duration with fallbacks
+  const course = exam.course || exam.subject || 'N/A';
+  const duration = exam.durationMinutes || exam.duration || 0;
+  const totalQuestions = exam.totalQuestions || questions.length || 0;
 
   return (
     <div className="space-y-6">
@@ -87,28 +152,27 @@ export default function ExamDetails() {
                   {status.label}
                 </span>
               </div>
-              <p className="mt-1 text-sm text-slate-600">{exam.subject}</p>
+              <p className="mt-1 text-sm text-slate-600">{course}</p>
             </div>
           </div>
         </div>
 
         <div className="flex gap-2">
-          {exam.status === 'draft' && (
+          {examStatus === 'draft' && (
             <button
-              onClick={() => {
-                // TODO: Implement publish functionality
-                alert('Publishing exam...');
-              }}
+              onClick={handlePublish}
+              disabled={isPublishing}
               style={{ backgroundColor: '#0084D1' }}
-              className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-all hover:opacity-90"
+              className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-50"
             >
-              <span className="material-symbols-outlined text-lg">publish</span>
-              Publish
+              <span className="material-symbols-outlined text-lg">
+                {isPublishing ? 'hourglass_empty' : 'publish'}
+              </span>
+              {isPublishing ? 'Publishing...' : 'Publish'}
             </button>
           )}
           <button
             onClick={() => {
-              // TODO: Implement edit functionality
               navigate(`/dashboard/create-exam?edit=${exam.id}`);
             }}
             className="flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
@@ -117,17 +181,14 @@ export default function ExamDetails() {
             Edit
           </button>
           <button
-            onClick={() => {
-              if (window.confirm('Are you sure you want to delete this exam?')) {
-                // TODO: Implement delete functionality
-                alert('Deleting exam...');
-                navigate('/dashboard/exams');
-              }
-            }}
-            className="flex items-center gap-2 rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-50"
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className="flex items-center gap-2 rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-50 disabled:opacity-50"
           >
-            <span className="material-symbols-outlined text-lg">delete</span>
-            Delete
+            <span className="material-symbols-outlined text-lg">
+              {isDeleting ? 'hourglass_empty' : 'delete'}
+            </span>
+            {isDeleting ? 'Deleting...' : 'Delete'}
           </button>
         </div>
       </div>
@@ -157,7 +218,7 @@ export default function ExamDetails() {
         >
           <span className="flex items-center justify-center gap-2">
             <span className="material-symbols-outlined text-lg">quiz</span>
-            Questions ({mockQuestions.length})
+            Questions ({questions.length})
           </span>
         </button>
       </div>
@@ -170,27 +231,46 @@ export default function ExamDetails() {
             <h2 className="mb-4 text-lg font-semibold text-slate-900">Exam Information</h2>
             <div className="grid gap-6 md:grid-cols-2">
               <InfoItem icon="assignment" label="Exam Title" value={exam.title} />
-              <InfoItem icon="category" label="Subject" value={exam.subject} />
-              <InfoItem icon="quiz" label="Total Questions" value={exam.totalQuestions} />
-              <InfoItem icon="schedule" label="Duration" value={`${exam.duration} minutes`} />
-              <InfoItem icon="military_tech" label="Total Marks" value={exam.totalMarks} />
-              {exam.startDate && (
-                <InfoItem icon="calendar_today" label="Start Date" value={exam.startDate} />
+              <InfoItem icon="school" label="Course" value={course} />
+              <InfoItem icon="quiz" label="Total Questions" value={totalQuestions} />
+              <InfoItem icon="schedule" label="Duration" value={`${duration} minutes`} />
+              <InfoItem icon="military_tech" label="Total Marks" value={exam.totalMarks || 0} />
+              <InfoItem icon="check_circle" label="Passing Marks" value={exam.passingMarks || 0} />
+              {exam.startDateTime && (
+                <InfoItem 
+                  icon="calendar_today" 
+                  label="Start Date" 
+                  value={new Date(exam.startDateTime).toLocaleString()} 
+                />
               )}
-              {exam.dueDate && (
-                <InfoItem icon="event" label="Due Date" value={exam.dueDate} />
+              {exam.endDateTime && (
+                <InfoItem 
+                  icon="event" 
+                  label="End Date" 
+                  value={new Date(exam.endDateTime).toLocaleString()} 
+                />
               )}
-              {exam.status === 'published' && (
-                <InfoItem icon="people" label="Submissions" value={exam.submissions || 0} />
+              {(examStatus === 'published' || examStatus === 'active' || examStatus === 'completed') && (
+                <InfoItem icon="people" label="Submissions" value={exam.submissions || exam.submissionCount || 0} />
               )}
             </div>
           </div>
         </div>
       ) : (
         <div className="space-y-4">
-          {mockQuestions.map((question, index) => (
-            <QuestionCard key={index} question={question} index={index} />
-          ))}
+          {questions.length > 0 ? (
+            questions.map((question, index) => (
+              <QuestionCard key={question.id || index} question={question} index={index} />
+            ))
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
+                <span className="material-symbols-outlined text-3xl text-slate-400">quiz</span>
+              </div>
+              <h3 className="text-lg font-semibold text-slate-900">No questions yet</h3>
+              <p className="mt-1 text-sm text-slate-600">Add questions to this exam to get started.</p>
+            </div>
+          )}
         </div>
       )}
     </div>

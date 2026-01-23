@@ -10,7 +10,7 @@ import {
   ExamCard,
   ExamCardSkeleton,
 } from '../../components/dashboard';
-import { teacherStats, teacherExams, teacherActivity } from '../../data/mockData';
+import { getTeacherExams, getAllSubmissions } from '../../services/examService';
 
 // Activity Item Component
 function ActivityItem({ activity }) {
@@ -29,13 +29,62 @@ function ActivityItem({ activity }) {
 
 export default function TeacherDashboard() {
   const [isLoading, setIsLoading] = useState(true);
+  const [exams, setExams] = useState([]);
+  const [stats, setStats] = useState({
+    totalExams: 0,
+    activeExams: 0,
+    pendingSubmissions: 0,
+    averageScore: 0,
+  });
+  const [activity] = useState([]);
 
-  // Simulate loading
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 800);
-    return () => clearTimeout(timer);
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Fetch exams and submissions in parallel
+        const [examsData, submissionsData] = await Promise.all([
+          getTeacherExams(),
+          getAllSubmissions(),
+        ]);
+        
+        const examsList = Array.isArray(examsData) ? examsData : examsData.content || [];
+        setExams(examsList);
+        
+        // Calculate stats from exams
+        const activeCount = examsList.filter(e => 
+          (e.status || '').toLowerCase() === 'active'
+        ).length;
+        
+        setStats(prev => ({
+          ...prev,
+          totalExams: examsList.length,
+          activeExams: activeCount,
+        }));
+        
+        const submissionsList = Array.isArray(submissionsData) ? submissionsData : submissionsData.content || [];
+        const pendingCount = submissionsList.filter(s => 
+          s.status === 'pending' || s.status === 'in-review'
+        ).length;
+        const gradedSubmissions = submissionsList.filter(s => s.totalScore !== undefined);
+        const avgScore = gradedSubmissions.length > 0
+          ? gradedSubmissions.reduce((sum, s) => sum + (s.percentage || 0), 0) / gradedSubmissions.length
+          : 0;
+        
+        setStats(prev => ({
+          ...prev,
+          pendingSubmissions: pendingCount,
+          averageScore: avgScore.toFixed(1),
+        }));
+      } catch (err) {
+        console.error('Failed to fetch dashboard data:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
   if (isLoading) {
@@ -48,7 +97,7 @@ export default function TeacherDashboard() {
       <div className="rounded-2xl bg-gradient-to-r from-primary to-primary/80 p-6 text-white shadow-lg">
         <h1 className="text-2xl font-bold">Welcome back, Professor! 👋</h1>
         <p className="mt-2 text-primary-foreground/90">
-          You have {teacherStats.pendingSubmissions} submissions pending review
+          You have {stats.pendingSubmissions} submissions pending review
         </p>
       </div>
 
@@ -56,32 +105,31 @@ export default function TeacherDashboard() {
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Total Exams"
-          value={teacherStats.totalExams}
+          value={stats.totalExams}
           subtitle="All time"
           icon="assignment"
           variant="primary"
         />
         <StatCard
           title="Active Exams"
-          value={teacherStats.activeExams}
+          value={stats.activeExams}
           subtitle="Currently ongoing"
           icon="play_circle"
           variant="success"
         />
         <StatCard
           title="Pending Submissions"
-          value={teacherStats.pendingSubmissions}
+          value={stats.pendingSubmissions}
           subtitle="Awaiting review"
           icon="pending_actions"
           variant="warning"
         />
         <StatCard
           title="Average Score"
-          value={`${teacherStats.averageScore}%`}
+          value={`${stats.averageScore}%`}
           subtitle="Class performance"
           icon="trending_up"
           variant="info"
-          trend={{ direction: 'up', value: '+2.5%' }}
         />
       </div>
 
@@ -138,7 +186,7 @@ export default function TeacherDashboard() {
             </Link>
           </div>
           <div className="space-y-4">
-            {teacherExams.slice(0, 3).map((exam) => (
+            {exams.slice(0, 3).map((exam) => (
               <ExamCard key={exam.id} exam={exam} role="teacher" />
             ))}
           </div>
@@ -149,8 +197,8 @@ export default function TeacherDashboard() {
           <h2 className="mb-4 text-lg font-bold text-slate-900">Recent Activity</h2>
           <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200/80">
             <div className="space-y-2">
-              {teacherActivity.map((activity, index) => (
-                <ActivityItem key={index} activity={activity} />
+              {activity.map((item, index) => (
+                <ActivityItem key={index} activity={item} />
               ))}
             </div>
             <Link
