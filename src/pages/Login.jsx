@@ -7,7 +7,7 @@ function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
   const [formData, setFormData] = useState({
-    username: '',
+    email: '',
     password: '',
     rememberMe: false,
   });
@@ -29,8 +29,8 @@ function Login() {
   const validateForm = () => {
     const newErrors = {};
     
-    if (!formData.username) {
-      newErrors.username = 'Username is required';
+    if (!formData.email) {
+      newErrors.email = 'Email is required';
     }
     
     if (!formData.password) {
@@ -48,7 +48,7 @@ function Login() {
     setIsLoading(true);
     
     try {
-      await login(formData.username, formData.password);
+      await login(formData.email, formData.password);
       navigate('/dashboard');
     } catch (error) {
       console.error('Login failed:', error);
@@ -120,17 +120,17 @@ function Login() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <Input
-              label="Username"
-              type="text"
-              name="username"
-              placeholder="Enter your username"
-              value={formData.username}
+              label="Email"
+              type="email"
+              name="email"
+              placeholder="Enter your email"
+              value={formData.email}
               onChange={handleChange}
-              error={errors.username}
+              error={errors.email}
               required
               icon={
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
               }
             />

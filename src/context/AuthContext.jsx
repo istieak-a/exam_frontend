@@ -38,9 +38,9 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   // Login function with real API call
-  const login = async (username, password) => {
+  const login = async (email, password) => {
     try {
-      const userData = await apiLogin(username, password);
+      const userData = await apiLogin(email, password);
       setUser(userData);
       localStorage.setItem('examhub_user', JSON.stringify(userData));
       return userData;

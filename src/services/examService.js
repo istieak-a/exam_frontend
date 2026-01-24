@@ -85,7 +85,10 @@ export async function getTeacherExams(options = {}) {
  * @returns {Promise<Array>} List of available exams
  */
 export async function getAvailableExams() {
-  return api.get('/exams/published');
+  const response = await api.get('/exams/published');
+  // API returns paginated response { content: [...], totalItems, ... }
+  // Extract the content array for backward compatibility
+  return response?.content || response || [];
 }
 
 /**
@@ -121,7 +124,9 @@ export async function submitExam(examId, submissionData) {
  * @returns {Promise<Array>} List of submissions
  */
 export async function getExamSubmissions(examId) {
-  return api.get(`/exams/${examId}/submissions`);
+  const data = await api.get(`/exams/${examId}/submissions`);
+  const list = Array.isArray(data) ? data : data?.content || [];
+  return list.map(normalizeSubmission);
 }
 
 /**
@@ -131,7 +136,9 @@ export async function getExamSubmissions(examId) {
  * @returns {Promise<Array>} List of all submissions
  */
 export async function getAllSubmissions() {
-  return api.get('/exams/submissions');
+  const data = await api.get('/exams/submissions');
+  const list = Array.isArray(data) ? data : data?.content || [];
+  return list.map(normalizeSubmission);
 }
 
 /**
@@ -141,7 +148,9 @@ export async function getAllSubmissions() {
  * @returns {Promise<Array>} List of student's submissions
  */
 export async function getMySubmissions() {
-  return api.get('/exams/my-submissions');
+  const data = await api.get('/exams/my-submissions');
+  const list = Array.isArray(data) ? data : data?.content || [];
+  return list.map(normalizeSubmission);
 }
 
 /**
@@ -152,7 +161,8 @@ export async function getMySubmissions() {
  * @returns {Promise<Object>} Submission details
  */
 export async function getSubmissionById(submissionId) {
-  return api.get(`/exams/submissions/${submissionId}`);
+  const submission = await api.get(`/exams/submissions/${submissionId}`);
+  return normalizeSubmission(submission);
 }
 
 /**
@@ -164,7 +174,8 @@ export async function getSubmissionById(submissionId) {
  * @returns {Promise<Object>} Graded submission
  */
 export async function gradeSubmission(submissionId, gradeData) {
-  return api.post(`/exams/submissions/${submissionId}/grade`, gradeData);
+  const submission = await api.post(`/exams/submissions/${submissionId}/grade`, gradeData);
+  return normalizeSubmission(submission);
 }
 
 // ==================== HELPER FUNCTIONS ====================
@@ -385,6 +396,39 @@ export function getExamStatusConfig(status) {
   };
 
   return configs[statusLower] || configs.draft;
+}
+
+/**
+ * Normalize backend submission payload to UI-friendly shape
+ */
+function normalizeSubmission(submission) {
+  if (!submission) return submission;
+
+  const statusMap = {
+    GRADED_MCQ: 'in-review',
+    FULLY_GRADED: 'graded',
+  };
+  const normalizedStatus = statusMap[submission.status] || 'pending';
+
+  const maxScore = submission.maxScore || submission.totalMarks || submission.totalScore || 0;
+  const percentage = submission.totalScore != null && maxScore
+    ? Math.round((submission.totalScore / maxScore) * 100)
+    : null;
+
+  return {
+    ...submission,
+    status: normalizedStatus,
+    examTitle: submission.examTitle || submission.examId,
+    examType: submission.examType?.toLowerCase() || 'mcq',
+    student: {
+      id: submission.studentId,
+      name: submission.studentName || 'Student',
+    },
+    autoScore: submission.mcqScore,
+    maxScore,
+    percentage,
+    submittedAt: submission.submittedAt,
+  };
 }
 
 export default {

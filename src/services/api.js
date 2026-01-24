@@ -38,6 +38,11 @@ async function apiRequest(endpoint, options = {}) {
       throw error;
     }
 
+    // Unwrap standard ApiResponse envelope if present
+    if (data && typeof data === 'object' && 'success' in data) {
+      return data.data !== undefined ? data.data : data;
+    }
+
     return data;
   } catch (error) {
     // Re-throw API errors as-is

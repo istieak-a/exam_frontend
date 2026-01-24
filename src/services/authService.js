@@ -8,12 +8,13 @@ import api from './api';
  * Login user
  * POST /api/auth/login
  * 
- * @param {string} username - Username or email
+ * @param {string} email - User email
  * @param {string} password - User password
  * @returns {Promise<Object>} User data with session cookie
  */
-export async function login(username, password) {
-  return api.post('/auth/login', { username, password });
+export async function login(email, password) {
+  const res = await api.post('/auth/login', { username: email, password });
+  return res?.user || res;
 }
 
 /**
@@ -29,7 +30,8 @@ export async function login(username, password) {
  * @returns {Promise<Object>} Created user data with session cookie
  */
 export async function signup(userData) {
-  return api.post('/auth/signup', userData);
+  const res = await api.post('/auth/signup', userData);
+  return res?.user || res;
 }
 
 /**
@@ -57,7 +59,8 @@ export async function logout() {
  * @returns {Promise<Object>} Current user data
  */
 export async function getCurrentUser() {
-  return api.get('/auth/me');
+  const res = await api.get('/auth/me');
+  return res?.user || res;
 }
 
 /**

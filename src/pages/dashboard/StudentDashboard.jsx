@@ -81,26 +81,31 @@ export default function StudentDashboard() {
           getMySubmissions(),
         ]);
         
-        setAvailableExams(examsData);
+        // Ensure examsData is always an array
+        const examsArray = Array.isArray(examsData) ? examsData : (examsData?.content || []);
+        setAvailableExams(examsArray);
+        
+        // Ensure submissionsData is always an array
+        const submissionsArray = Array.isArray(submissionsData) ? submissionsData : [];
         
         // Calculate stats from submissions
-        const completedCount = submissionsData.filter(s => 
+        const completedCount = submissionsArray.filter(s => 
           s.status === 'graded' || s.status === 'completed'
         ).length;
-        const pendingCount = submissionsData.filter(s => 
+        const pendingCount = submissionsArray.filter(s => 
           s.status === 'pending' || s.status === 'in-review'
         ).length;
-        const gradedSubmissions = submissionsData.filter(s => s.totalScore !== undefined);
+        const gradedSubmissions = submissionsArray.filter(s => s.totalScore !== undefined);
         const avgScore = gradedSubmissions.length > 0
           ? gradedSubmissions.reduce((sum, s) => sum + (s.percentage || 0), 0) / gradedSubmissions.length
           : 0;
         
         setStats({
-          availableExams: examsData?.length || 0,
-            completedExams: completedCount,
-            averageScore: avgScore.toFixed(1),
-            pendingResults: pendingCount,
-          });
+          availableExams: examsArray.length,
+          completedExams: completedCount,
+          averageScore: avgScore.toFixed(1),
+          pendingResults: pendingCount,
+        });
       } catch (err) {
         console.error('Failed to fetch dashboard data:', err);
       } finally {
@@ -112,7 +117,8 @@ export default function StudentDashboard() {
   }, []);
 
   // Get upcoming exams (published but not started yet)
-  const upcomingExams = availableExams.filter(exam => {
+  const examsArray = Array.isArray(availableExams) ? availableExams : [];
+  const upcomingExams = examsArray.filter(exam => {
     const status = (exam.status || '').toLowerCase();
     return status === 'published' || (status === 'active' && exam.startDateTime > Date.now());
   }).slice(0, 3);
