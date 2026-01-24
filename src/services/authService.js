@@ -74,11 +74,23 @@ export async function updateProfile(profileData) {
   return api.put('/auth/profile', profileData);
 }
 
+/**
+ * Switch user role (for demo purposes)
+ * POST /api/auth/switch-role
+ * 
+ * @returns {Promise<Object>} Updated user data with new role
+ */
+export async function switchRole() {
+  const res = await api.post('/auth/switch-role', {});
+  return res?.user || res;
+}
+
 export default {
   login,
   signup,
   register,
   logout,
   getCurrentUser,
+  switchRole,
   updateProfile,
 };

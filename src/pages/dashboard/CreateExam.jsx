@@ -94,35 +94,48 @@ export default function CreateExam() {
   const validateForm = () => {
     const newErrors = {};
     
+    console.log('🔍 Validating exam data:', examData);
+    console.log('🔍 Questions array:', questions);
+    
     if (!examData.title?.trim()) {
       newErrors.title = 'Title is required';
+      console.log('❌ Title validation failed:', examData.title);
     }
     if (!examData.course?.trim()) {
       newErrors.course = 'Course is required';
+      console.log('❌ Course validation failed:', examData.course);
     }
     if (!examData.duration || parseInt(examData.duration, 10) <= 0) {
       newErrors.duration = 'Duration must be greater than 0';
+      console.log('❌ Duration validation failed:', examData.duration);
     }
     if (!examData.totalMarks || parseInt(examData.totalMarks, 10) <= 0) {
       newErrors.totalMarks = 'Total marks must be greater than 0';
+      console.log('❌ Total marks validation failed:', examData.totalMarks);
     }
     if (!examData.passingMarks || parseInt(examData.passingMarks, 10) <= 0) {
       newErrors.passingMarks = 'Passing marks must be greater than 0';
+      console.log('❌ Passing marks validation failed:', examData.passingMarks);
     }
     if (parseInt(examData.passingMarks, 10) > parseInt(examData.totalMarks, 10)) {
       newErrors.passingMarks = 'Passing marks cannot exceed total marks';
+      console.log('❌ Passing marks exceeds total marks:', examData.passingMarks, '>', examData.totalMarks);
     }
     if (!examData.startDate) {
       newErrors.startDate = 'Start date is required';
+      console.log('❌ Start date validation failed:', examData.startDate);
     }
     if (!examData.startTime) {
       newErrors.startTime = 'Start time is required';
+      console.log('❌ Start time validation failed:', examData.startTime);
     }
     if (!examData.endDate) {
       newErrors.endDate = 'End date is required';
+      console.log('❌ End date validation failed:', examData.endDate);
     }
     if (!examData.endTime) {
       newErrors.endTime = 'End time is required';
+      console.log('❌ End time validation failed:', examData.endTime);
     }
     
     // Validate date range
@@ -131,33 +144,41 @@ export default function CreateExam() {
       const endDateTime = new Date(`${examData.endDate}T${examData.endTime}`);
       if (endDateTime <= startDateTime) {
         newErrors.endDate = 'End date/time must be after start date/time';
+        console.log('❌ Date range validation failed:', startDateTime, '>=', endDateTime);
       }
     }
     
     // Validate questions
     if (questions.length === 0) {
       newErrors.questions = 'At least one question is required';
+      console.log('❌ Questions validation failed: No questions added');
     }
     
     // Validate total marks equals sum of question marks
     const questionMarksSum = questions.reduce((sum, q) => sum + parseInt(q.marks || 0, 10), 0);
     if (questions.length > 0 && questionMarksSum !== parseInt(examData.totalMarks, 10)) {
       newErrors.totalMarks = `Total marks (${examData.totalMarks}) must equal sum of question marks (${questionMarksSum})`;
+      console.log('❌ Marks mismatch validation failed:', examData.totalMarks, 'vs', questionMarksSum);
     }
     
+    console.log('🔍 Validation errors found:', newErrors);
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log('🚀 Submit button clicked - starting exam creation process');
     setSubmitError(null);
     
     // Client-side validation
+    console.log('📝 Validating form data...');
     if (!validateForm()) {
+      console.log('❌ Form validation failed');
       return;
     }
     
+    console.log('✅ Form validation passed, preparing to save exam');
     setIsSaving(true);
     
     try {
@@ -167,15 +188,20 @@ export default function CreateExam() {
         questions,
       };
       
+      console.log('📤 Sending exam data to API:', payload);
+      
       if (isEditMode) {
+        console.log(`🔄 Updating exam with ID: ${editId}`);
         await updateExam(editId, payload);
         navigate(`/dashboard/exam/${editId}`);
       } else {
-        await createExam(payload);
+        console.log('🆕 Creating new exam');
+        const result = await createExam(payload);
+        console.log('✅ Exam created successfully:', result);
         navigate('/dashboard/exams');
       }
     } catch (error) {
-      console.error('Failed to save exam:', error);
+      console.error('❌ Failed to save exam:', error);
       
       // Handle structured validation errors from backend
       if (error.status === 400 && error.validationErrors) {
@@ -206,6 +232,7 @@ export default function CreateExam() {
       }
     } finally {
       setIsSaving(false);
+      console.log('🏁 Exam submission process completed');
     }
   };
 

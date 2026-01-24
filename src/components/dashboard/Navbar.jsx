@@ -152,9 +152,16 @@ export default function Navbar({ onMenuClick }) {
 
                 {/* Switch Role (Demo) */}
                 <button
-                  onClick={() => {
-                    switchRole();
-                    setAccountOpen(false);
+                  onClick={async () => {
+                    try {
+                      await switchRole();
+                      setAccountOpen(false);
+                    } catch (error) {
+                      console.error('Failed to switch role:', error);
+                      // Keep dropdown open to show user that the operation failed
+                      // You could add a toast notification here
+                      alert('Failed to switch role. Please try again.');
+                    }
                   }}
                   className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-primary transition-colors hover:bg-primary/5"
                 >
