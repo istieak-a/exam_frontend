@@ -15,23 +15,83 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Session refresh function - attempt to re-establish session with current user data
+  const refreshSession = async () => {
+    try {
+      const userData = await getCurrentUser();
+      setUser(userData);
+      localStorage.setItem('examhub_user', JSON.stringify(userData));
+      console.log('Session refreshed successfully');
+      return true;
+    } catch (error) {
+      console.log('Session refresh failed:', error.message);
+      return false;
+    }
+  };
+
+  // Listen for session expiration events from API
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      console.log('Session expired, logging out user');
+      setUser(null);
+      localStorage.removeItem('examhub_user');
+    };
+
+    const handleSessionRefreshNeeded = async () => {
+      console.log('Session refresh needed, attempting to refresh...');
+      const success = await refreshSession();
+      if (!success) {
+        console.log('Session refresh failed, keeping user logged in with localStorage data');
+        // Don't log out the user, just log the failure
+      }
+    };
+
+    window.addEventListener('auth:session-expired', handleSessionExpired);
+    window.addEventListener('auth:session-refresh-needed', handleSessionRefreshNeeded);
+    
+    return () => {
+      window.removeEventListener('auth:session-expired', handleSessionExpired);
+      window.removeEventListener('auth:session-refresh-needed', handleSessionRefreshNeeded);
+    };
+  }, []);
+
   // Check for existing session on mount
   useEffect(() => {
     const checkSession = async () => {
+      // First, immediately load user from localStorage if available
       const savedUser = localStorage.getItem('examhub_user');
       if (savedUser) {
         try {
-          // Try to validate the session with the backend
-          const userData = await getCurrentUser();
-          setUser(userData);
-          localStorage.setItem('examhub_user', JSON.stringify(userData));
-        } catch (error) {
-          console.error('Session validation failed:', error);
+          const parsedUser = JSON.parse(savedUser);
+          setUser(parsedUser);
+          console.log('Loaded user from localStorage:', parsedUser.username);
+        } catch (parseError) {
+          console.error('Failed to parse saved user data:', parseError);
           localStorage.removeItem('examhub_user');
-          setUser(null);
         }
       }
-      setIsLoading(false);
+
+      // Then validate session in background
+      try {
+        const userData = await getCurrentUser();
+        console.log('Session validation successful');
+        setUser(userData);
+        localStorage.setItem('examhub_user', JSON.stringify(userData));
+      } catch (error) {
+        console.log('Session validation failed:', error.message);
+        
+        // If we don't have a saved user, set user to null
+        if (!savedUser) {
+          setUser(null);
+        }
+        // If we have saved user data, keep the user logged in
+        // The session will be re-established on the next API call
+      }
+      
+      // Add a small delay to ensure component tree is fully rendered
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 100);
     };
     
     checkSession();
@@ -43,6 +103,7 @@ export const AuthProvider = ({ children }) => {
       const userData = await apiLogin(email, password);
       setUser(userData);
       localStorage.setItem('examhub_user', JSON.stringify(userData));
+      console.log('Login successful:', userData.username);
       return userData;
     } catch (error) {
       console.error('Login failed:', error);
@@ -62,6 +123,7 @@ export const AuthProvider = ({ children }) => {
       });
       setUser(userData);
       localStorage.setItem('examhub_user', JSON.stringify(userData));
+      console.log('Signup successful:', userData.username);
       return userData;
     } catch (error) {
       console.error('Signup failed:', error);
@@ -108,6 +170,7 @@ export const AuthProvider = ({ children }) => {
     signup,
     logout,
     switchRole,
+    refreshSession,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

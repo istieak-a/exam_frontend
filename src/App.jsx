@@ -11,7 +11,39 @@ import './App.css';
 
 // Protected Route Component
 function ProtectedRoute({ children }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
+  
+  // Show loading spinner while authentication state is being determined
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+  
+  // Double-check localStorage as fallback
+  if (!isAuthenticated) {
+    const savedUser = localStorage.getItem('examhub_user');
+    if (savedUser) {
+      try {
+        const parsedUser = JSON.parse(savedUser);
+        if (parsedUser && parsedUser.id) {
+          // User exists in localStorage, show loading while auth context catches up
+          return (
+            <div className="min-h-screen flex items-center justify-center">
+              <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+            </div>
+          );
+        }
+      } catch (error) {
+        console.error('Error parsing localStorage user:', error);
+        localStorage.removeItem('examhub_user');
+      }
+    }
+  }
+  
+  // Only redirect to login if definitely not authenticated
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 }
 

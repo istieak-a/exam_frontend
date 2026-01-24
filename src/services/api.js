@@ -30,6 +30,24 @@ async function apiRequest(endpoint, options = {}) {
     }
 
     if (!response.ok) {
+      // Handle 401 Unauthorized - session might have expired
+      if (response.status === 401) {
+        // Check if user has data in localStorage
+        const savedUser = localStorage.getItem('examhub_user');
+        
+        if (savedUser) {
+          // Don't immediately clear localStorage, let the auth context handle it
+          console.log('API call unauthorized, but user data exists in localStorage');
+          
+          // Dispatch a custom event to notify that session needs refresh
+          window.dispatchEvent(new CustomEvent('auth:session-refresh-needed'));
+        } else {
+          // No saved user data, clear everything
+          localStorage.removeItem('examhub_user');
+          window.dispatchEvent(new CustomEvent('auth:session-expired'));
+        }
+      }
+
       // Create structured error object
       const error = new Error(data?.message || 'An error occurred');
       error.status = response.status;
