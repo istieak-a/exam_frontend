@@ -11,11 +11,15 @@ export function ExamCard({ exam, role = 'student' }) {
     completed: { color: 'bg-green-100 text-green-700', icon: 'task_alt' },
     graded: { color: 'bg-emerald-100 text-emerald-700', icon: 'check_circle' },
     pending: { color: 'bg-amber-100 text-amber-700', icon: 'schedule' },
+    'in-review': { color: 'bg-amber-100 text-amber-700', icon: 'rate_review' },
     archived: { color: 'bg-slate-100 text-slate-500', icon: 'archive' },
   };
 
   const examStatus = exam.status?.toLowerCase() || 'draft';
   const status = statusConfig[examStatus] || statusConfig.draft;
+  const statusLabel = examStatus === 'in-review'
+    ? 'In Review'
+    : examStatus.charAt(0).toUpperCase() + examStatus.slice(1);
 
   const difficultyColors = {
     easy: 'text-emerald-600 bg-emerald-50',
@@ -57,7 +61,7 @@ export function ExamCard({ exam, role = 'student' }) {
         </div>
         <span className={`inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium ${status.color}`}>
           <span className="material-symbols-outlined text-sm">{status.icon}</span>
-          {examStatus.charAt(0).toUpperCase() + examStatus.slice(1)}
+          {statusLabel}
         </span>
       </div>
 
@@ -165,7 +169,7 @@ export function ExamCard({ exam, role = 'student' }) {
               >
                 View Results
               </Link>
-            ) : examStatus === 'pending' ? (
+            ) : examStatus === 'pending' || examStatus === 'in-review' ? (
               <Link
                 to={`/dashboard/exam-result/${exam.id}?type=${examType || 'mcq'}`}
                 className="flex-1 rounded-lg bg-slate-100 px-4 py-2 text-center text-sm font-medium text-slate-700 transition-colors hover:bg-slate-200"

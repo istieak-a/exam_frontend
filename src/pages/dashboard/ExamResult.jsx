@@ -569,8 +569,38 @@ export default function ExamResult() {
   const totalMarks = submission.maxScore || exam?.totalMarks || 0;
   const obtainedMarks = submission.totalScore || 0;
   const percentage = totalMarks > 0 ? ((obtainedMarks / totalMarks) * 100).toFixed(1) : 0;
-  const isPending = submission.status !== 'FULLY_GRADED';
-  const isGraded = submission.status === 'FULLY_GRADED';
+  const normalizedStatus = submission.status?.toLowerCase();
+  const isGraded = normalizedStatus === 'graded';
+  const isInReview = normalizedStatus === 'in-review';
+  const isPending = normalizedStatus === 'pending' || isInReview;
+  const answersMap = submission.answers || {};
+  const questionGradesMap = submission.questionGrades || {};
+  const examQuestions = exam?.questions || [];
+  const fallbackQuestions = !examQuestions.length
+    ? Object.keys(answersMap).map((questionId, index) => ({
+        id: questionId,
+        questionText: `Question ${index + 1}`,
+        type: submission.examType || examType,
+        marks: null,
+        options: [],
+      }))
+    : examQuestions;
+
+  const resolveOptionText = (options, value) => {
+    if (!options || options.length === 0) return value || '';
+    const normalizedOptions = options.map((opt) => {
+      if (typeof opt === 'string') return opt;
+      return opt?.text || opt?.label || opt?.value || '';
+    });
+    if (normalizedOptions.includes(value)) return value;
+    if (typeof value === 'string' && value.length === 1) {
+      const index = value.toLowerCase().charCodeAt(0) - 97;
+      if (index >= 0 && index < normalizedOptions.length) {
+        return normalizedOptions[index];
+      }
+    }
+    return value || '';
+  };
 
   return (
     <div className="space-y-4">
@@ -588,7 +618,7 @@ export default function ExamResult() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-slate-900">
-                {isPending ? 'Exam Submitted' : isGraded ? 'Exam Results' : 'Under Review'}
+                {isGraded ? 'Exam Results' : isInReview ? 'Under Review' : 'Exam Submitted'}
               </h1>
               <p className="mt-0.5 text-sm text-slate-600">{exam?.title || submission.examTitle || 'Exam'}</p>
               <p className="text-xs text-slate-500">{exam?.course || 'Course'}</p>
@@ -690,6 +720,108 @@ export default function ExamResult() {
         </div>
       </div>
       )}
+
+      {/* Questions & Answers */}
+      <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200/80">
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="text-base font-semibold text-slate-900">Questions & Answers</h2>
+          <button
+            type="button"
+            onClick={() => setShowAnswers((prev) => !prev)}
+            className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-200"
+          >
+            {showAnswers ? 'Hide Answers' : 'Show Answers'}
+          </button>
+        </div>
+
+        {fallbackQuestions.length === 0 ? (
+          <p className="mt-3 text-sm text-slate-600">No questions found for this submission.</p>
+        ) : (
+          <div className="mt-4 space-y-4">
+            {fallbackQuestions.map((question, index) => {
+              const questionType = (question.type || examType || '').toLowerCase();
+              const studentAnswer = answersMap[question.id];
+              const correctAnswer = question.correctAnswer;
+              const maxMarks = question.marks ?? null;
+              const awardedMarks = questionGradesMap[question.id];
+              const mcqAwarded = correctAnswer && studentAnswer != null
+                ? studentAnswer.trim().toLowerCase() === correctAnswer.trim().toLowerCase()
+                  ? maxMarks
+                  : 0
+                : null;
+
+              return (
+                <div key={question.id || index} className="rounded-xl border border-slate-200 p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">
+                        Q{index + 1}. {question.questionText || question.question || 'Question'}
+                      </p>
+                      {maxMarks != null && (
+                        <p className="mt-1 text-xs text-slate-500">Marks: {maxMarks}</p>
+                      )}
+                    </div>
+                    {maxMarks != null && (
+                      <div className="rounded-lg bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">
+                        {questionType === 'mcq'
+                          ? (mcqAwarded != null ? `${mcqAwarded}/${maxMarks}` : 'Score N/A')
+                          : (awardedMarks != null ? `${awardedMarks}/${maxMarks}` : isGraded ? 'Score N/A' : 'Not graded')}
+                      </div>
+                    )}
+                  </div>
+
+                  {questionType === 'mcq' && question.options?.length > 0 && (
+                    <div className="mt-3 grid gap-2">
+                      {question.options.map((option, optIndex) => {
+                        const optionText = typeof option === 'string'
+                          ? option
+                          : option?.text || option?.label || option?.value || '';
+                        const isSelected = resolveOptionText(question.options, studentAnswer) === optionText;
+                        const isCorrect = correctAnswer
+                          ? resolveOptionText(question.options, correctAnswer) === optionText
+                          : false;
+
+                        return (
+                          <div
+                            key={`${question.id || index}-opt-${optIndex}`}
+                            className={`rounded-lg border px-3 py-2 text-sm ${
+                              isCorrect
+                                ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+                                : isSelected
+                                  ? 'border-blue-200 bg-blue-50 text-blue-900'
+                                  : 'border-slate-200 bg-white text-slate-700'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span>{optionText}</span>
+                              <div className="flex items-center gap-2 text-xs font-medium">
+                                {isSelected && <span className="text-blue-700">Your answer</span>}
+                                {showAnswers && isCorrect && <span className="text-emerald-700">Correct</span>}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {questionType !== 'mcq' && (
+                    <div className="mt-3">
+                      <p className="text-xs font-medium text-slate-500">Your Answer</p>
+                      <div className="mt-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                        {studentAnswer || 'No answer submitted.'}
+                      </div>
+                      {showAnswers && awardedMarks != null && (
+                        <p className="mt-2 text-xs text-slate-600">Marks Awarded: {awardedMarks}{maxMarks != null ? `/${maxMarks}` : ''}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {/* Status Message */}
       <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200/80">

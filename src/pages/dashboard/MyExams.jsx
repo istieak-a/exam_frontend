@@ -26,7 +26,7 @@ export default function MyExams() {
           totalQuestions: Object.keys(submission.answers || {}).length,
           duration: 0, // Not available in submission, could fetch from exam
           course: submission.examTitle, // Use title as fallback
-          status: submission.status === 'FULLY_GRADED' ? 'graded' : 'pending',
+          status: submission.status,
           score: submission.totalScore,
           totalScore: submission.totalScore,
           maxScore: submission.maxScore,
@@ -46,7 +46,7 @@ export default function MyExams() {
 
   // Separate completed and ongoing submissions
   const completedExams = submissions.filter(s => 
-    s.status === 'graded' || s.status === 'completed' || s.status === 'pending'
+    s.status === 'graded' || s.status === 'completed' || s.status === 'pending' || s.status === 'in-review'
   );
   const ongoingExams = submissions.filter(s => 
     s.status === 'in-progress' || s.status === 'started'
