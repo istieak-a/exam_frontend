@@ -14,7 +14,26 @@ export default function MyExams() {
       try {
         setIsLoading(true);
         const data = await getMySubmissions();
-        setSubmissions(data || []);
+        
+        // Map submissions to exam card format
+        const mappedSubmissions = (data || []).map(submission => ({
+          id: submission.examId, // Use examId for navigation
+          submissionId: submission.id, // Keep submission ID
+          title: submission.examTitle,
+          examType: submission.examType,
+          type: submission.examType,
+          totalMarks: submission.maxScore,
+          totalQuestions: Object.keys(submission.answers || {}).length,
+          duration: 0, // Not available in submission, could fetch from exam
+          course: submission.examTitle, // Use title as fallback
+          status: submission.status === 'FULLY_GRADED' ? 'graded' : 'pending',
+          score: submission.totalScore,
+          totalScore: submission.totalScore,
+          maxScore: submission.maxScore,
+          submittedAt: submission.submittedAt,
+        }));
+        
+        setSubmissions(mappedSubmissions);
       } catch (err) {
         console.error('Failed to fetch submissions:', err);
       } finally {
@@ -83,25 +102,7 @@ export default function MyExams() {
           {completedExams.length > 0 ? (
             <div className="grid gap-6 lg:grid-cols-2">
               {completedExams.map((exam) => (
-                <div key={exam.id} className="relative">
-                  <ExamCard exam={exam} role="student" />
-                  {exam.status === 'pending' && (
-                    <div className="absolute right-4 top-4">
-                      <span className="inline-flex items-center gap-1 rounded-lg bg-amber-100 px-3 py-1.5 text-xs font-medium text-amber-700 ring-1 ring-amber-200">
-                        <span className="material-symbols-outlined text-sm">schedule</span>
-                        Awaiting Results
-                      </span>
-                    </div>
-                  )}
-                  {exam.status === 'graded' && (exam.score !== undefined || exam.totalScore !== undefined) && (
-                    <div className="absolute right-4 top-4">
-                      <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-100 px-3 py-1.5 text-xs font-medium text-emerald-700 ring-1 ring-emerald-200">
-                        <span className="material-symbols-outlined text-sm">check_circle</span>
-                        Score: {exam.score || exam.totalScore}/{exam.totalMarks || exam.maxScore}
-                      </span>
-                    </div>
-                  )}
-                </div>
+                <ExamCard key={exam.id} exam={exam} role="student" />
               ))}
             </div>
           ) : (

@@ -467,7 +467,6 @@ export default function ExamResult() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const examType = searchParams.get('type') || 'mcq';
   
   // State for real data
   const [submission, setSubmission] = useState(null);
@@ -482,17 +481,20 @@ export default function ExamResult() {
         setIsLoading(true);
         setError(null);
         
-        // Fetch both submission and exam data
-        const [submissionData, examData] = await Promise.all([
-          getMySubmissionForExam(id),
-          getExamById(id)
-        ]);
-        
-        if (examData) {
-          setExam(parseExamResponse(examData));
-        }
-        
+        // First try to fetch submission for this exam
+        const submissionData = await getMySubmissionForExam(id);
         setSubmission(submissionData);
+        
+        // Then try to fetch exam details
+        try {
+          const examData = await getExamById(id, { includeQuestions: true });
+          if (examData) {
+            setExam(parseExamResponse(examData));
+          }
+        } catch (examErr) {
+          console.warn('Could not fetch exam details:', examErr);
+          // Don't fail if we can't get exam details, we have submission data
+        }
         
       } catch (err) {
         console.error('Failed to fetch exam result data:', err);
@@ -507,6 +509,31 @@ export default function ExamResult() {
 
   if (isLoading) {
     return <PageSkeleton />;
+  }
+
+  // Handle errors
+  if (error) {
+    return (
+      <div className="rounded-2xl bg-white p-8 shadow-sm ring-1 ring-slate-200/80 text-center">
+        <span className="material-symbols-outlined mx-auto text-6xl text-red-300">error</span>
+        <h3 className="mt-4 text-lg font-semibold text-slate-900">Error Loading Results</h3>
+        <p className="mt-2 text-sm text-slate-600">{error}</p>
+        <div className="mt-4 flex gap-3 justify-center">
+          <button
+            onClick={() => navigate('/dashboard/my-exams')}
+            className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-200"
+          >
+            Back to My Exams
+          </button>
+          <button
+            onClick={() => window.location.reload()}
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
   }
 
   // Handle case when no submission is found
@@ -536,32 +563,14 @@ export default function ExamResult() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="rounded-2xl bg-white p-8 shadow-sm ring-1 ring-slate-200/80 text-center">
-        <span className="material-symbols-outlined mx-auto text-6xl text-red-300">error</span>
-        <h3 className="mt-4 text-lg font-semibold text-slate-900">Error Loading Results</h3>
-        <p className="mt-2 text-sm text-slate-600">{error}</p>
-        <div className="mt-4 flex gap-3 justify-center">
-          <button
-            onClick={() => navigate('/dashboard/available-exams')}
-            className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-200"
-          >
-            Back to Exams
-          </button>
-          <button
-            onClick={() => window.location.reload()}
-            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90"
-          >
-            Refresh
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  const isPending = submission.status === 'pending';
-  const isGraded = submission.status === 'graded';
+  // Use submission data with exam data as fallback
+  const examTitle = submission.examTitle || exam?.title || 'Exam Results';
+  const examType = (submission.examType || exam?.examType || 'MCQ').toLowerCase();
+  const totalMarks = submission.maxScore || exam?.totalMarks || 0;
+  const obtainedMarks = submission.totalScore || 0;
+  const percentage = totalMarks > 0 ? ((obtainedMarks / totalMarks) * 100).toFixed(1) : 0;
+  const isPending = submission.status !== 'FULLY_GRADED';
+  const isGraded = submission.status === 'FULLY_GRADED';
 
   return (
     <div className="space-y-4">
@@ -608,7 +617,7 @@ export default function ExamResult() {
             <span className="material-symbols-outlined text-lg text-slate-400">quiz</span>
             <div>
               <p className="text-xs text-slate-500">Questions</p>
-              <p className="text-sm font-bold text-slate-900">{exam?.totalQuestions || 'N/A'}</p>
+              <p className="text-sm font-bold text-slate-900">{exam?.questions?.length || Object.keys(submission.answers || {}).length || 0}</p>
             </div>
           </div>
           <div className="flex items-center gap-3 rounded-lg bg-slate-50 px-3 py-2.5">
@@ -620,11 +629,11 @@ export default function ExamResult() {
           </div>
           <div className="flex items-center gap-3 rounded-lg bg-slate-50 px-3 py-2.5">
             <span className="material-symbols-outlined text-lg text-slate-400">
-              {submission.examType === 'mcq' ? 'radio_button_checked' : 'edit_note'}
+              {examType === 'mcq' ? 'radio_button_checked' : 'edit_note'}
             </span>
             <div>
               <p className="text-xs text-slate-500">Type</p>
-              <p className="text-sm font-bold text-slate-900">{submission.examType === 'mcq' ? 'MCQ' : 'Descriptive'}</p>
+              <p className="text-sm font-bold text-slate-900">{examType === 'mcq' ? 'MCQ' : examType === 'cq' ? 'Descriptive' : examType.toUpperCase()}</p>
             </div>
           </div>
         </div>

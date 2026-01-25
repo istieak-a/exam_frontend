@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getSubmissionById, gradeSubmission } from '../../services/examService';
+import { getSubmissionById, gradeSubmission, getExamById } from '../../services/examService';
 
 export default function GradeSubmission() {
   const { id } = useParams();
@@ -10,13 +10,13 @@ export default function GradeSubmission() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [submission, setSubmission] = useState(null);
+  const [exam, setExam] = useState(null);
   const [questions, setQuestions] = useState([]);
   const [error, setError] = useState(null);
   const [saveError, setSaveError] = useState(null);
   
   // Initialize grades state for CQ exams only
   const [grades, setGrades] = useState([]);
-  const [overallFeedback, setOverallFeedback] = useState('');
 
   useEffect(() => {
     const fetchSubmission = async () => {
@@ -24,25 +24,28 @@ export default function GradeSubmission() {
         setIsLoading(true);
         setError(null);
         
+        // Fetch submission
         const data = await getSubmissionById(id);
         setSubmission(data);
         
-        // Get questions from the submission's exam
-        const examQuestionList = data.exam?.questions || data.questions || [];
-        setQuestions(examQuestionList);
-        
-        // Initialize grades for CQ exams
-        if (data.examType?.toLowerCase() !== 'mcq') {
-          setGrades(examQuestionList.map((q, index) => ({
-            questionId: q.id,
-            questionNumber: index + 1,
-            marks: data.grades?.[q.id] || 0,
-            maxMarks: q.marks,
-            feedback: data.questionFeedback?.[q.id] || '',
-          })));
+        // Fetch the exam to get questions
+        if (data.examId) {
+          const examData = await getExamById(data.examId, { includeQuestions: true });
+          setExam(examData);
+          
+          const examQuestionList = examData.questions || [];
+          setQuestions(examQuestionList);
+          
+          // Initialize grades for CQ exams
+          if (data.examType?.toLowerCase() !== 'mcq') {
+            setGrades(examQuestionList.map((q, index) => ({
+              questionId: q.id,
+              questionNumber: index + 1,
+              marks: data.questionGrades?.[q.id] || 0,
+              maxMarks: q.marks,
+            })));
+          }
         }
-        
-        setOverallFeedback(data.feedback || '');
       } catch (err) {
         console.error('Failed to fetch submission:', err);
         setError('Submission not found');
@@ -57,6 +60,26 @@ export default function GradeSubmission() {
   // Determine exam type from submission
   const examType = submission?.examType?.toLowerCase() || 'cq';
   const isAutoGraded = examType === 'mcq';
+
+  // Helper function to format timestamp
+  const formatDate = (timestamp) => {
+    if (!timestamp) return 'N/A';
+    const date = new Date(timestamp);
+    return date.toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  // Helper function to calculate time taken (if available)
+  const getTimeTaken = () => {
+    // This would need to be calculated based on exam start and submission time
+    // For now, return a placeholder
+    return 'N/A';
+  };
 
   if (isLoading) {
     return <PageSkeleton />;
@@ -117,24 +140,15 @@ export default function GradeSubmission() {
     ));
   };
 
-  const handleFeedbackChange = (questionId, value) => {
-    setGrades(grades.map(g => 
-      g.questionId === questionId 
-        ? { ...g, feedback: value }
-        : g
-    ));
-  };
-
   const calculateTotalMarks = () => {
     if (isAutoGraded) {
-      // For MCQ exams, calculate based on correct answers (demo: random)
-      return questions.reduce((sum, q) => sum + q.marks, 0) * 0.7; // Simulating 70% correct
+      return submission.mcqScore || 0;
     }
     return grades.reduce((sum, g) => sum + g.marks, 0);
   };
 
   const calculateMaxMarks = () => {
-    return questions.reduce((sum, q) => sum + q.marks, 0);
+    return submission?.maxScore || questions.reduce((sum, q) => sum + q.marks, 0);
   };
 
   const calculatePercentage = () => {
@@ -148,16 +162,14 @@ export default function GradeSubmission() {
     setSaveError(null);
     
     try {
-      // Format grades for API submission
+      // Format grades for API submission - convert array to map of questionId -> marks
+      const questionGradesMap = {};
+      grades.forEach(g => {
+        questionGradesMap[g.questionId] = Math.round(g.marks); // Ensure integer marks
+      });
+      
       const gradeData = {
-        submissionId: id,
-        questionGrades: grades.map(g => ({
-          questionId: g.questionId,
-          marks: g.marks,
-          feedback: g.feedback,
-        })),
-        overallFeedback,
-        totalMarks: calculateTotalMarks(),
+        questionGrades: questionGradesMap,
       };
       
       await gradeSubmission(id, gradeData);
@@ -170,37 +182,12 @@ export default function GradeSubmission() {
       } else if (err.status === 400) {
         setSaveError(err.message || 'Invalid grade data. Please check your input.');
       } else {
-        // For demo purposes, still navigate on error
-        console.log('Demo mode: Grades saved locally');
-        navigate('/dashboard/submissions');
+        setSaveError(err.message || 'Failed to save grades. Please try again.');
       }
     } finally {
       setIsSaving(false);
     }
   };
-
-  const statusConfig = {
-    pending: {
-      label: 'Pending',
-      color: 'text-amber-700',
-      bgColor: 'bg-amber-50',
-      borderColor: 'border-amber-200',
-    },
-    'in-review': {
-      label: 'In Review',
-      color: 'text-blue-700',
-      bgColor: 'bg-blue-50',
-      borderColor: 'border-blue-200',
-    },
-    graded: {
-      label: 'Graded',
-      color: 'text-green-700',
-      bgColor: 'bg-green-50',
-      borderColor: 'border-green-200',
-    },
-  };
-
-  const status = statusConfig[submission.status];
 
   return (
     <div className="space-y-6">
@@ -243,23 +230,35 @@ export default function GradeSubmission() {
             {isSaving ? 'Saving...' : 'Save Grades'}
           </button>
         </div>
-        {saveError && (
-          <div className="mt-4 rounded-lg bg-red-50 border border-red-200 p-3">
-            <p className="text-sm text-red-600">{saveError}</p>
-          </div>
-        )}
       </div>
+
+      {/* Error Message */}
+      {saveError && (
+        <div className="rounded-lg bg-red-50 border-2 border-red-200 p-4 flex items-start gap-3">
+          <span className="material-symbols-outlined text-red-600">error</span>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-red-900">Error Saving Grades</p>
+            <p className="text-sm text-red-700 mt-1">{saveError}</p>
+          </div>
+          <button
+            onClick={() => setSaveError(null)}
+            className="text-red-400 hover:text-red-600"
+          >
+            <span className="material-symbols-outlined">close</span>
+          </button>
+        </div>
+      )}
 
       {/* Student & Exam Info */}
       <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-200">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-4">
             <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-500 text-xl font-bold text-white">
-              {submission.student?.name?.split(' ').map(n => n[0]).join('') || 'U'}
+              {submission.studentName?.split(' ').map(n => n[0]).join('').toUpperCase() || 'S'}
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-slate-900">{submission.student.name}</h2>
-              <p className="text-sm text-slate-600">{submission.student.id}</p>
+              <h2 className="text-xl font-semibold text-slate-900">{submission.studentName}</h2>
+              <p className="text-sm text-slate-600">ID: {submission.studentId}</p>
               <div className="mt-2 flex items-center gap-2">
                 <span className="material-symbols-outlined text-base text-slate-400">assignment</span>
                 <span className="font-medium text-slate-700">{submission.examTitle}</span>
@@ -268,9 +267,13 @@ export default function GradeSubmission() {
           </div>
           
           <span
-            className={`rounded-full border px-4 py-1.5 text-sm font-medium ${status.color} ${status.bgColor} ${status.borderColor}`}
+            className={`rounded-full border px-4 py-1.5 text-sm font-medium ${
+              submission.status === 'FULLY_GRADED'
+                ? 'text-green-700 bg-green-50 border-green-200'
+                : 'text-amber-700 bg-amber-50 border-amber-200'
+            }`}
           >
-            {status.label}
+            {submission.status === 'FULLY_GRADED' ? 'Graded' : 'Pending Review'}
           </span>
         </div>
         
@@ -279,25 +282,23 @@ export default function GradeSubmission() {
             <span className="material-symbols-outlined text-slate-400">schedule</span>
             <div>
               <p className="text-xs text-slate-500">Submitted At</p>
-              <p className="text-sm font-medium text-slate-900">{submission.submittedAt}</p>
+              <p className="text-sm font-medium text-slate-900">{formatDate(submission.submittedAt)}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-slate-400">timer</span>
+            <span className="material-symbols-outlined text-slate-400">quiz</span>
             <div>
-              <p className="text-xs text-slate-500">Time Taken</p>
-              <p className="text-sm font-medium text-slate-900">{submission.timeTaken}</p>
+              <p className="text-xs text-slate-500">Questions</p>
+              <p className="text-sm font-medium text-slate-900">{questions.length}</p>
             </div>
           </div>
-          {submission.autoScore && (
-            <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-slate-400">calculate</span>
-              <div>
-                <p className="text-xs text-slate-500">Auto Score</p>
-                <p className="text-sm font-medium text-slate-900">{submission.autoScore}</p>
-              </div>
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-slate-400">star</span>
+            <div>
+              <p className="text-xs text-slate-500">Max Score</p>
+              <p className="text-sm font-medium text-slate-900">{submission.maxScore}</p>
             </div>
-          )}
+          </div>
         </div>
       </div>
 
@@ -322,129 +323,94 @@ export default function GradeSubmission() {
       {/* Questions Grading */}
       <div className="space-y-4">
         <div className="flex items-center gap-2">
-          <h3 className="text-lg font-semibold text-slate-900">Creative Questions (CQ)</h3>
-          <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-700">
-            <span className="material-symbols-outlined text-xs align-middle">rate_review</span> Manual Grading Required
+          <h3 className="text-lg font-semibold text-slate-900">Questions & Answers</h3>
+          <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700">
+            {questions.length} Question{questions.length !== 1 ? 's' : ''}
           </span>
         </div>
         
-        {questions.map((question, index) => {
-          const gradeIndex = grades.findIndex(g => g.questionId === question.id);
-          
-          return (
-            <div key={question.id} className="rounded-2xl bg-white p-6 shadow-sm border-2 border-amber-200 bg-amber-50/30">
-              <div className="flex items-start gap-4">
-                <div
-                  className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg text-white font-bold"
-                  style={{ backgroundColor: '#0084D1' }}
-                >
-                  {index + 1}
-                </div>
-                <div className="flex-1">
-                  <div className="mb-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <p className="text-base font-medium text-slate-900">{question.question}</p>
-                        <div className="mt-2 flex items-center gap-3 text-xs text-slate-500">
-                          <span className="flex items-center gap-1">
-                            <span className="material-symbols-outlined text-sm">edit_note</span>
-                            Creative Question
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <span className="material-symbols-outlined text-sm">military_tech</span>
-                            {question.marks} marks
-                          </span>
+        {questions.length === 0 ? (
+          <div className="rounded-2xl bg-slate-50 p-8 text-center border border-slate-200">
+            <span className="material-symbols-outlined text-4xl text-slate-400 mb-2">quiz</span>
+            <p className="text-slate-600">No questions found for this exam</p>
+          </div>
+        ) : (
+          questions.map((question, index) => {
+            const gradeIndex = grades.findIndex(g => g.questionId === question.id);
+            const studentAnswer = submission.answers?.[question.id] || '';
+            
+            return (
+              <div key={question.id} className="rounded-2xl bg-white p-6 shadow-sm border-2 border-slate-200 hover:border-blue-300 transition-colors">
+                <div className="flex items-start gap-4">
+                  <div
+                    className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg text-white font-bold"
+                    style={{ backgroundColor: '#0084D1' }}
+                  >
+                    {index + 1}
+                  </div>
+                  <div className="flex-1">
+                    <div className="mb-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <p className="text-base font-medium text-slate-900 mb-2">{question.questionText || question.question}</p>
+                          <div className="flex items-center gap-3 text-xs text-slate-500">
+                            <span className="flex items-center gap-1">
+                              <span className="material-symbols-outlined text-sm">edit_note</span>
+                              {question.type === 'MCQ' ? 'Multiple Choice' : 'Creative Question'}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <span className="material-symbols-outlined text-sm">military_tech</span>
+                              {question.marks} mark{question.marks !== 1 ? 's' : ''}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Student's Answer */}
-                  <div className="mb-4 rounded-lg bg-white p-4 border border-slate-200">
-                    <p className="mb-2 text-xs font-medium text-slate-600">Student's Answer:</p>
-                    <p className="text-sm text-slate-900">
-                      [Student's written answer would appear here - this is a sample response showing how the student answered this question. The teacher needs to review this and provide marks accordingly.]
-                    </p>
-                  </div>
+                    {/* Student's Answer */}
+                    <div className="mb-4 rounded-lg bg-slate-50 p-4 border border-slate-200">
+                      <p className="mb-2 text-xs font-semibold text-slate-700 uppercase tracking-wide">Student's Answer:</p>
+                      {studentAnswer ? (
+                        <p className="text-sm text-slate-900 whitespace-pre-wrap leading-relaxed">
+                          {studentAnswer}
+                        </p>
+                      ) : (
+                        <p className="text-sm text-slate-400 italic">No answer provided</p>
+                      )}
+                    </div>
 
                   {/* Marks Input */}
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div>
-                      <label className="mb-2 block text-sm font-medium text-slate-700">
-                        Marks Awarded <span className="text-red-500">*</span>
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="number"
-                          min="0"
-                          max={question.marks}
-                          step="0.5"
-                          value={gradeIndex >= 0 ? grades[gradeIndex].marks : 0}
-                          onChange={(e) => handleGradeChange(question.id, e.target.value)}
-                          className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm focus:outline-none"
-                          onFocus={(e) => {
-                            e.target.style.borderColor = '#0084D1';
-                            e.target.style.boxShadow = '0 0 0 3px rgba(0, 132, 209, 0.1)';
-                          }}
-                          onBlur={(e) => {
-                            e.target.style.borderColor = '#cbd5e1';
-                            e.target.style.boxShadow = 'none';
-                          }}
-                        />
-                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-slate-500">
-                          / {question.marks}
-                        </span>
+                    <div className="flex items-center gap-4 bg-blue-50 p-4 rounded-lg border border-blue-200">
+                      <div className="flex-1 max-w-xs">
+                        <label className="mb-2 block text-sm font-semibold text-blue-900">
+                          Marks Awarded <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            min="0"
+                            max={question.marks}
+                            step="0.5"
+                            value={gradeIndex >= 0 ? grades[gradeIndex].marks : 0}
+                            onChange={(e) => handleGradeChange(question.id, e.target.value)}
+                            className="w-full rounded-lg border-2 border-blue-300 px-4 py-3 text-base font-semibold text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                          />
+                          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-600">
+                            / {question.marks}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                    
-                    <div>
-                      <label className="mb-2 block text-sm font-medium text-slate-700">
-                        Feedback (Optional)
-                      </label>
-                      <input
-                        type="text"
-                        value={gradeIndex >= 0 ? grades[gradeIndex].feedback : ''}
-                        onChange={(e) => handleFeedbackChange(question.id, e.target.value)}
-                        placeholder="e.g., Good explanation but missing key points"
-                        className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm focus:outline-none"
-                        onFocus={(e) => {
-                          e.target.style.borderColor = '#0084D1';
-                          e.target.style.boxShadow = '0 0 0 3px rgba(0, 132, 209, 0.1)';
-                        }}
-                        onBlur={(e) => {
-                          e.target.style.borderColor = '#cbd5e1';
-                          e.target.style.boxShadow = 'none';
-                        }}
-                      />
+                      <div className="flex items-center gap-2 text-sm text-blue-700">
+                        <span className="material-symbols-outlined text-lg">info</span>
+                        <span>Enter marks between 0 and {question.marks}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Overall Feedback */}
-      <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-200">
-        <label className="mb-2 block text-sm font-medium text-slate-700">
-          Overall Feedback (Optional)
-        </label>
-        <textarea
-          value={overallFeedback}
-          onChange={(e) => setOverallFeedback(e.target.value)}
-          placeholder="Provide overall feedback for the student's performance..."
-          rows={4}
-          className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm focus:outline-none"
-          onFocus={(e) => {
-            e.target.style.borderColor = '#0084D1';
-            e.target.style.boxShadow = '0 0 0 3px rgba(0, 132, 209, 0.1)';
-          }}
-          onBlur={(e) => {
-            e.target.style.borderColor = '#cbd5e1';
-            e.target.style.boxShadow = 'none';
-          }}
-        />
+            );
+          })
+        )}
       </div>
 
       {/* Submit Button */}

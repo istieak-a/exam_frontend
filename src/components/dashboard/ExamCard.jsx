@@ -9,6 +9,8 @@ export function ExamCard({ exam, role = 'student' }) {
     closed: { color: 'bg-red-100 text-red-700', icon: 'block' },
     active: { color: 'bg-blue-100 text-blue-700', icon: 'play_circle' },
     completed: { color: 'bg-green-100 text-green-700', icon: 'task_alt' },
+    graded: { color: 'bg-emerald-100 text-emerald-700', icon: 'check_circle' },
+    pending: { color: 'bg-amber-100 text-amber-700', icon: 'schedule' },
     archived: { color: 'bg-slate-100 text-slate-500', icon: 'archive' },
   };
 
@@ -72,14 +74,14 @@ export function ExamCard({ exam, role = 'student' }) {
           <span className="material-symbols-outlined text-lg text-slate-400">schedule</span>
           <div>
             <p className="text-xs text-slate-500">Duration</p>
-            <p className="font-semibold text-slate-900">{duration} min</p>
+            <p className="font-semibold text-slate-900">{duration || 0} min</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-lg text-slate-400">star</span>
           <div>
             <p className="text-xs text-slate-500">Total Marks</p>
-            <p className="font-semibold text-slate-900">{exam.totalMarks}</p>
+            <p className="font-semibold text-slate-900">{exam.totalMarks || exam.maxScore}</p>
           </div>
         </div>
         {role === 'teacher' && exam.submissions !== undefined && (
@@ -91,12 +93,12 @@ export function ExamCard({ exam, role = 'student' }) {
             </div>
           </div>
         )}
-        {role === 'student' && exam.score !== undefined && (
+        {role === 'student' && (exam.totalScore !== undefined || exam.score !== undefined) && examStatus === 'graded' && (
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-lg text-slate-400">grade</span>
+            <span className="material-symbols-outlined text-lg text-emerald-600">grade</span>
             <div>
-              <p className="text-xs text-slate-500">Score</p>
-              <p className="font-semibold text-slate-900">{exam.score}%</p>
+              <p className="text-xs text-slate-500">Your Score</p>
+              <p className="font-bold text-emerald-600">{exam.totalScore || exam.score}/{exam.maxScore || exam.totalMarks}</p>
             </div>
           </div>
         )}
@@ -108,7 +110,7 @@ export function ExamCard({ exam, role = 'student' }) {
           <div className="flex items-center gap-1">
             <span className="material-symbols-outlined text-sm">calendar_today</span>
             <span>Starts: {exam.startDateTime 
-              ? new Date(exam.startDateTime).toLocaleString() 
+              ? new Date(exam.startDateTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
               : exam.startDate}</span>
           </div>
         )}
@@ -116,14 +118,14 @@ export function ExamCard({ exam, role = 'student' }) {
           <div className="flex items-center gap-1">
             <span className="material-symbols-outlined text-sm">event</span>
             <span>Ends: {exam.endDateTime 
-              ? new Date(exam.endDateTime).toLocaleString() 
+              ? new Date(exam.endDateTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
               : exam.dueDate}</span>
           </div>
         )}
-        {exam.completedAt && (
+        {exam.submittedAt && (
           <div className="flex items-center gap-1">
             <span className="material-symbols-outlined text-sm">check_circle</span>
-            <span>Completed: {exam.completedAt}</span>
+            <span>Submitted: {new Date(exam.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
           </div>
         )}
       </div>
