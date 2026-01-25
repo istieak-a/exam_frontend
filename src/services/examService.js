@@ -109,11 +109,11 @@ export async function deleteExam(examId) {
  * POST /api/exams/{examId}/submit
  * 
  * @param {string} examId - The exam ID
- * @param {Object} submissionData - The submission data with answers
+ * @param {Object} answers - Map of questionId to answer string (e.g., {"q1": "answer1", "q2": "answer2"})
  * @returns {Promise<Object>} Submission result
  */
-export async function submitExam(examId, submissionData) {
-  return api.post(`/exams/${examId}/submit`, submissionData);
+export async function submitExam(examId, answers) {
+  return api.post(`/exams/${examId}/submit`, answers);
 }
 
 /**
@@ -151,6 +151,17 @@ export async function getMySubmissions() {
   const data = await api.get('/exams/my-submissions');
   const list = Array.isArray(data) ? data : data?.content || [];
   return list.map(normalizeSubmission);
+}
+
+/**
+ * Get student's submission for a specific exam
+ * 
+ * @param {string} examId - The exam ID
+ * @returns {Promise<Object|null>} Submission details or null if not found
+ */
+export async function getMySubmissionForExam(examId) {
+  const submissions = await getMySubmissions();
+  return submissions.find(submission => submission.examId === examId) || null;
 }
 
 /**
@@ -299,7 +310,8 @@ export function parseExamResponse(exam) {
 function parseQuestionResponse(question) {
   return {
     id: question.id,
-    text: question.text,
+    questionText: question.questionText,
+    text: question.questionText, // For backwards compatibility
     marks: question.marks,
     type: question.type?.toLowerCase() || 'mcq',
     options: question.options || [],
@@ -442,6 +454,7 @@ export default {
   getExamSubmissions,
   getAllSubmissions,
   getMySubmissions,
+  getMySubmissionForExam,
   getSubmissionById,
   gradeSubmission,
   parseExamResponse,

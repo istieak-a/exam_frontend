@@ -13,64 +13,164 @@ const defaultInstructions = [
   'You can navigate between questions using the question palette',
 ];
 
+// Mock exam data - supports two types: 'mcq' or 'short'
+const mockExams = {
+  'mcq-exam': {
+    id: 'mcq-exam',
+    type: 'mcq',
+    title: 'Data Structures - Multiple Choice Test',
+    subject: 'Computer Science',
+    duration: 60, // minutes
+    totalMarks: 50,
+    instructions: [
+      'Read all questions carefully before answering',
+      'Each question carries equal marks',
+      'Once submitted, you cannot change your answers',
+      'Results will be shown immediately after submission',
+      'You can navigate between questions using the question palette',
+    ],
+    questions: [
+      {
+        id: 'q1',
+        question: 'What is the time complexity of binary search?',
+        marks: 10,
+        options: [
+          { id: 'a', text: 'O(n)' },
+          { id: 'b', text: 'O(log n)' },
+          { id: 'c', text: 'O(n²)' },
+          { id: 'd', text: 'O(1)' },
+        ],
+        correctAnswer: 'b',
+      },
+      {
+        id: 'q2',
+        question: 'Which data structure uses LIFO (Last In First Out) principle?',
+        marks: 10,
+        options: [
+          { id: 'a', text: 'Queue' },
+          { id: 'b', text: 'Stack' },
+          { id: 'c', text: 'Array' },
+          { id: 'd', text: 'Linked List' },
+        ],
+        correctAnswer: 'b',
+      },
+      {
+        id: 'q3',
+        question: 'What is the worst-case time complexity of Quick Sort?',
+        marks: 10,
+        options: [
+          { id: 'a', text: 'O(n log n)' },
+          { id: 'b', text: 'O(n²)' },
+          { id: 'c', text: 'O(n)' },
+          { id: 'd', text: 'O(log n)' },
+        ],
+        correctAnswer: 'b',
+      },
+      {
+        id: 'q4',
+        question: 'In a binary tree, what is the maximum number of nodes at level L?',
+        marks: 10,
+        options: [
+          { id: 'a', text: '2^L' },
+          { id: 'b', text: 'L²' },
+          { id: 'c', text: '2L' },
+          { id: 'd', text: 'L!' },
+        ],
+        correctAnswer: 'a',
+      },
+      {
+        id: 'q5',
+        question: 'Which of the following is NOT a linear data structure?',
+        marks: 10,
+        options: [
+          { id: 'a', text: 'Array' },
+          { id: 'b', text: 'Stack' },
+          { id: 'c', text: 'Tree' },
+          { id: 'd', text: 'Queue' },
+        ],
+        correctAnswer: 'c',
+      },
+    ],
+  },
+  'short-exam': {
+    id: 'short-exam',
+    type: 'short',
+    title: 'Data Structures - Descriptive Exam',
+    subject: 'Computer Science',
+    duration: 90, // minutes
+    totalMarks: 100,
+    instructions: [
+      'Answer all questions in detail',
+      'Each question carries different marks as indicated',
+      'Write clearly and provide examples where applicable',
+      'Your answers will be reviewed by the teacher',
+      'Results will be available once grading is complete',
+    ],
+    questions: [
+      {
+        id: 'q1',
+        question: 'Explain the difference between an array and a linked list. Provide examples of when you would use each data structure.',
+        marks: 20,
+        minWords: 100,
+      },
+      {
+        id: 'q2',
+        question: 'Describe how a hash table works. Discuss the concept of hash collisions and explain at least two methods to resolve them.',
+        marks: 25,
+        minWords: 150,
+      },
+      {
+        id: 'q3',
+        question: 'What is recursion? Explain with an example and discuss the advantages and disadvantages of using recursion.',
+        marks: 20,
+        minWords: 100,
+      },
+      {
+        id: 'q4',
+        question: 'Compare and contrast Depth-First Search (DFS) and Breadth-First Search (BFS) algorithms. When would you use one over the other?',
+        marks: 25,
+        minWords: 150,
+      },
+      {
+        id: 'q5',
+        question: 'Explain the concept of time complexity and space complexity. Why are they important in algorithm analysis?',
+        marks: 10,
+        minWords: 80,
+      },
+    ],
+  },
+};
+
+// Determine exam type from URL - in real app, fetch from API
+const getExamData = (examId) => {
+  // For demo: if id contains 'short', return short exam, otherwise MCQ
+  if (examId && examId.includes('short')) {
+    return mockExams['short-exam'];
+  }
+  return mockExams['mcq-exam'];
+};
+
 export default function TakeExam() {
-  const { id: examId } = useParams();
+  const { id } = useParams();
   const navigate = useNavigate();
-  
-  // State for exam data
-  const [exam, setExam] = useState(null);
+  const mockExam = getExamData(id);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-  
-  // State for exam taking
   const [showInstructions, setShowInstructions] = useState(true);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState({});
-  const [timeRemaining, setTimeRemaining] = useState(0);
+  const [timeRemaining, setTimeRemaining] = useState(mockExam.duration * 60); // in seconds
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Fetch exam data on component mount
   useEffect(() => {
-    const fetchExam = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        
-        const examData = await getExamById(examId, { includeQuestions: true });
-        const parsedExam = parseExamResponse(examData);
-        
-        if (!parsedExam) {
-          throw new Error('Exam not found');
-        }
-        
-        // Check if exam is available to take
-        if (parsedExam.status !== 'active' && parsedExam.status !== 'published') {
-          throw new Error('This exam is not currently available');
-        }
-        
-        setExam(parsedExam);
-        setTimeRemaining((parsedExam.duration || 60) * 60); // Convert minutes to seconds
-        
-      } catch (err) {
-        console.error('Failed to fetch exam:', err);
-        setError(err.message || 'Failed to load exam');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (examId) {
-      fetchExam();
-    } else {
-      setError('No exam ID provided');
+    const timer = setTimeout(() => {
       setIsLoading(false);
-    }
-  }, [examId]);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Countdown timer
   useEffect(() => {
-    if (showInstructions || isLoading || !exam) return;
+    if (showInstructions || isLoading) return;
 
     const interval = setInterval(() => {
       setTimeRemaining((prev) => {
@@ -83,22 +183,7 @@ export default function TakeExam() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [showInstructions, isLoading, exam]);
-
-  // Format exam questions for component use
-  const formattedQuestions = exam?.questions?.map((q, index) => ({
-    id: q.id || `q${index + 1}`,
-    question: q.questionText || q.question,
-    marks: q.marks,
-    type: q.type?.toLowerCase() || exam.examType?.toLowerCase() || 'mcq',
-    options: q.type?.toLowerCase() === 'mcq' ? 
-      (q.options?.map((opt, i) => ({ id: String.fromCharCode(97 + i), text: opt })) || []) : 
-      undefined,
-    correctAnswer: q.correctAnswer, // This won't be used in the taking interface
-    minWords: q.minWords || 50 // Default minimum words for CQ questions
-  })) || [];
-
-  const examInstructions = exam?.instructions || defaultInstructions;
+  }, [showInstructions, isLoading]);
 
   const formatTime = (seconds) => {
     const hours = Math.floor(seconds / 3600);
@@ -107,7 +192,7 @@ export default function TakeExam() {
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const currentQuestion = formattedQuestions[currentQuestionIndex];
+  const currentQuestion = mockExam.questions[currentQuestionIndex];
 
   const handleAnswerChange = (questionId, answer) => {
     setAnswers((prev) => ({
@@ -117,7 +202,7 @@ export default function TakeExam() {
   };
 
   const handleNext = () => {
-    if (currentQuestionIndex < formattedQuestions.length - 1) {
+    if (currentQuestionIndex < mockExam.questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     }
   };
@@ -134,35 +219,13 @@ export default function TakeExam() {
 
   const handleAutoSubmit = useCallback(() => {
     console.log('Time up! Auto-submitting exam...', answers);
-    handleSubmit();
-  }, [answers, examId]);
+    navigate('/dashboard/exam-result/' + id);
+  }, [answers, id, navigate]);
 
-  const handleSubmit = async () => {
-    try {
-      setIsSubmitting(true);
-      setShowSubmitConfirm(false);
-      
-      // Format answers for submission - backend expects just Map<String, String>
-      const formattedAnswers = {};
-      Object.entries(answers).forEach(([questionId, answer]) => {
-        // Ensure answer is a string
-        formattedAnswers[questionId] = String(answer || '');
-      });
-
-      console.log('Submitting exam answers...', formattedAnswers);
-      
-      // Submit to backend - just send the answers map
-      await submitExam(examId, formattedAnswers);
-      
-      // Navigate to result page
-      navigate(`/dashboard/exam-result/${examId}?type=${exam.examType?.toLowerCase() || 'mcq'}`);
-      
-    } catch (err) {
-      console.error('Failed to submit exam:', err);
-      setError('Failed to submit exam. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handleSubmit = () => {
+    console.log('Submitting exam...', { examType: mockExam.type, answers });
+    setShowSubmitConfirm(false);
+    navigate('/dashboard/exam-result/' + id + '?type=' + mockExam.type);
   };
 
   const getQuestionStatus = (questionId) => {
@@ -176,33 +239,8 @@ export default function TakeExam() {
     return Object.keys(answers).length;
   };
 
-  // Loading state
   if (isLoading) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="text-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent mx-auto mb-4"></div>
-          <p className="text-slate-600">Loading exam...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Error state
-  if (error || !exam) {
-    return (
-      <div className="rounded-2xl bg-white p-8 shadow-sm ring-1 ring-slate-200/80 text-center">
-        <span className="material-symbols-outlined mx-auto text-6xl text-red-300">error</span>
-        <h3 className="mt-4 text-lg font-semibold text-slate-900">Error Loading Exam</h3>
-        <p className="mt-2 text-sm text-slate-600">{error || 'Exam not found'}</p>
-        <button
-          onClick={() => navigate('/dashboard/available-exams')}
-          className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90"
-        >
-          Back to Available Exams
-        </button>
-      </div>
-    );
+    return <PageSkeleton />;
   }
 
   // Instructions Screen
@@ -214,32 +252,32 @@ export default function TakeExam() {
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
               <span className="material-symbols-outlined text-3xl text-primary">quiz</span>
             </div>
-            <h1 className="mt-4 text-2xl font-bold text-slate-900">{exam.title}</h1>
-            <p className="mt-2 text-slate-600">{exam.course}</p>
+            <h1 className="mt-4 text-2xl font-bold text-slate-900">{mockExam.title}</h1>
+            <p className="mt-2 text-slate-600">{mockExam.subject}</p>
           </div>
 
           <div className="mt-8 grid gap-4 sm:grid-cols-3">
             <div className="rounded-lg bg-slate-50 p-4 text-center">
               <span className="material-symbols-outlined text-2xl text-slate-600">schedule</span>
               <p className="mt-2 text-sm text-slate-600">Duration</p>
-              <p className="text-lg font-bold text-slate-900">{exam.duration} min</p>
+              <p className="text-lg font-bold text-slate-900">{mockExam.duration} min</p>
             </div>
             <div className="rounded-lg bg-slate-50 p-4 text-center">
               <span className="material-symbols-outlined text-2xl text-slate-600">quiz</span>
               <p className="mt-2 text-sm text-slate-600">Questions</p>
-              <p className="text-lg font-bold text-slate-900">{formattedQuestions.length}</p>
+              <p className="text-lg font-bold text-slate-900">{mockExam.questions.length}</p>
             </div>
             <div className="rounded-lg bg-slate-50 p-4 text-center">
               <span className="material-symbols-outlined text-2xl text-slate-600">star</span>
               <p className="mt-2 text-sm text-slate-600">Total Marks</p>
-              <p className="text-lg font-bold text-slate-900">{exam.totalMarks}</p>
+              <p className="text-lg font-bold text-slate-900">{mockExam.totalMarks}</p>
             </div>
           </div>
 
           <div className="mt-8">
             <h3 className="text-lg font-semibold text-slate-900">Instructions</h3>
             <ul className="mt-4 space-y-3">
-              {examInstructions.map((instruction, index) => (
+              {mockExam.instructions.map((instruction, index) => (
                 <li key={index} className="flex items-start gap-3">
                   <span className="material-symbols-outlined mt-0.5 text-primary">
                     check_circle
@@ -278,23 +316,6 @@ export default function TakeExam() {
     );
   }
 
-  // If no questions available
-  if (!currentQuestion) {
-    return (
-      <div className="rounded-2xl bg-white p-8 shadow-sm ring-1 ring-slate-200/80 text-center">
-        <span className="material-symbols-outlined mx-auto text-6xl text-slate-300">quiz</span>
-        <h3 className="mt-4 text-lg font-semibold text-slate-900">No Questions Available</h3>
-        <p className="mt-2 text-sm text-slate-600">This exam doesn't have any questions yet.</p>
-        <button
-          onClick={() => navigate('/dashboard/available-exams')}
-          className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90"
-        >
-          Back to Available Exams
-        </button>
-      </div>
-    );
-  }
-
   // Exam Screen
   return (
     <div className="space-y-6">
@@ -302,9 +323,9 @@ export default function TakeExam() {
       <div className="sticky top-0 z-10 rounded-2xl bg-white p-4 shadow-lg ring-1 ring-slate-200/80">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-bold text-slate-900">{exam.title}</h1>
+            <h1 className="text-lg font-bold text-slate-900">{mockExam.title}</h1>
             <p className="text-sm text-slate-600">
-              Question {currentQuestionIndex + 1} of {formattedQuestions.length}
+              Question {currentQuestionIndex + 1} of {mockExam.questions.length}
             </p>
           </div>
           <div className="flex items-center gap-4">
@@ -322,10 +343,9 @@ export default function TakeExam() {
             </div>
             <button
               onClick={() => setShowSubmitConfirm(true)}
-              disabled={isSubmitting}
-              className="rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
+              className="rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary/90"
             >
-              {isSubmitting ? 'Submitting...' : 'Submit Exam'}
+              Submit Exam
             </button>
           </div>
         </div>
@@ -348,12 +368,12 @@ export default function TakeExam() {
                   </span>
                   <span
                     className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${
-                      currentQuestion.type === 'mcq'
+                      mockExam.type === 'mcq'
                         ? 'bg-sky-50 text-sky-700'
                         : 'bg-emerald-50 text-emerald-700'
                     }`}
                   >
-                    {currentQuestion.type === 'mcq' ? 'Multiple Choice' : 'Short Answer'}
+                    {mockExam.type === 'mcq' ? 'Multiple Choice' : 'Short Answer'}
                   </span>
                 </div>
               </div>
@@ -365,9 +385,9 @@ export default function TakeExam() {
             </div>
 
             {/* Answer Area */}
-            {currentQuestion.type === 'mcq' ? (
+            {mockExam.type === 'mcq' ? (
               <div className="space-y-3">
-                {currentQuestion.options?.map((option) => (
+                {currentQuestion.options.map((option) => (
                   <label
                     key={option.id}
                     className={`flex cursor-pointer items-center gap-3 rounded-lg border-2 p-4 transition-all ${
@@ -404,7 +424,7 @@ export default function TakeExam() {
                 <div className="mt-2 flex items-center justify-between text-sm text-slate-600">
                   <span>
                     {currentQuestion.minWords && (
-                      <>Minimum {currentQuestion.minWords} words recommended</>
+                      <>Minimum {currentQuestion.minWords} words required</>
                     )}
                   </span>
                   <span>
@@ -427,13 +447,12 @@ export default function TakeExam() {
                 <span className="material-symbols-outlined">chevron_left</span>
                 Previous
               </button>
-              {currentQuestionIndex === formattedQuestions.length - 1 ? (
+              {currentQuestionIndex === mockExam.questions.length - 1 ? (
                 <button
                   onClick={() => setShowSubmitConfirm(true)}
-                  disabled={isSubmitting}
-                  className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary/90"
                 >
-                  {isSubmitting ? 'Submitting...' : 'Submit Exam'}
+                  Submit Exam
                   <span className="material-symbols-outlined">check</span>
                 </button>
               ) : (
@@ -462,13 +481,13 @@ export default function TakeExam() {
               <div className="flex items-center gap-2">
                 <div className="h-3 w-3 rounded bg-slate-200" />
                 <span className="text-slate-600">
-                  Not Answered ({formattedQuestions.length - getAnsweredCount()})
+                  Not Answered ({mockExam.questions.length - getAnsweredCount()})
                 </span>
               </div>
             </div>
 
             <div className="grid grid-cols-4 gap-2">
-              {formattedQuestions.map((q, index) => (
+              {mockExam.questions.map((q, index) => (
                 <button
                   key={q.id}
                   onClick={() => handleQuestionNavigate(index)}
@@ -506,29 +525,35 @@ export default function TakeExam() {
               </div>
               <h3 className="mt-4 text-lg font-semibold text-slate-900">Submit Exam?</h3>
               <p className="mt-2 text-sm text-slate-600">
-                You have answered {getAnsweredCount()} out of {formattedQuestions.length}{' '}
+                You have answered {getAnsweredCount()} out of {mockExam.questions.length}{' '}
                 questions. Once submitted, you cannot change your answers.
               </p>
             </div>
             <div className="mt-6 flex gap-3">
               <button
                 onClick={() => setShowSubmitConfirm(false)}
-                disabled={isSubmitting}
-                className="flex-1 rounded-lg bg-slate-100 px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-200 disabled:opacity-50"
+                className="flex-1 rounded-lg bg-slate-100 px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-200"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSubmit}
-                disabled={isSubmitting}
-                className="flex-1 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
+                className="flex-1 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary/90"
               >
-                {isSubmitting ? 'Submitting...' : 'Submit'}
+                Submit
               </button>
             </div>
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function PageSkeleton() {
+  return (
+    <div className="mx-auto max-w-4xl space-y-6">
+      <div className="h-96 rounded-2xl bg-slate-200 animate-pulse" />
     </div>
   );
 }

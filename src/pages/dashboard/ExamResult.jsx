@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { getMySubmissionForExam, getExamById, parseExamResponse } from '../../services/examService';
 
 // Mock exam result data - two types
 const mockResults = {
@@ -464,25 +465,103 @@ const getResultData = (examId, type) => {
 
 export default function ExamResult() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const examType = searchParams.get('type') || 'mcq';
-  const mockExamResult = getResultData(id, examType);
-  const navigate = useNavigate();
+  
+  // State for real data
+  const [submission, setSubmission] = useState(null);
+  const [exam, setExam] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showAnswers, setShowAnswers] = useState(true);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 800);
-    return () => clearTimeout(timer);
-  }, []);
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        // Fetch both submission and exam data
+        const [submissionData, examData] = await Promise.all([
+          getMySubmissionForExam(id),
+          getExamById(id)
+        ]);
+        
+        if (examData) {
+          setExam(parseExamResponse(examData));
+        }
+        
+        setSubmission(submissionData);
+        
+      } catch (err) {
+        console.error('Failed to fetch exam result data:', err);
+        setError(err.message || 'Failed to load exam results');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [id]);
 
   if (isLoading) {
     return <PageSkeleton />;
   }
 
-  const isPending = mockExamResult.type === 'short' && mockExamResult.status === 'pending';
+  // Handle case when no submission is found
+  if (!submission) {
+    return (
+      <div className="rounded-2xl bg-white p-8 shadow-sm ring-1 ring-slate-200/80 text-center">
+        <span className="material-symbols-outlined mx-auto text-6xl text-blue-300">pending</span>
+        <h3 className="mt-4 text-lg font-semibold text-slate-900">Exam Submitted Successfully</h3>
+        <p className="mt-2 text-sm text-slate-600">
+          Your exam has been submitted successfully. Results will be available once your teacher completes the grading process.
+        </p>
+        <div className="mt-4 flex gap-3 justify-center">
+          <button
+            onClick={() => navigate('/dashboard/available-exams')}
+            className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-200"
+          >
+            Back to Exams
+          </button>
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90"
+          >
+            Go to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-2xl bg-white p-8 shadow-sm ring-1 ring-slate-200/80 text-center">
+        <span className="material-symbols-outlined mx-auto text-6xl text-red-300">error</span>
+        <h3 className="mt-4 text-lg font-semibold text-slate-900">Error Loading Results</h3>
+        <p className="mt-2 text-sm text-slate-600">{error}</p>
+        <div className="mt-4 flex gap-3 justify-center">
+          <button
+            onClick={() => navigate('/dashboard/available-exams')}
+            className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-200"
+          >
+            Back to Exams
+          </button>
+          <button
+            onClick={() => window.location.reload()}
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90"
+          >
+            Refresh
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const isPending = submission.status === 'pending';
+  const isGraded = submission.status === 'graded';
 
   return (
     <div className="space-y-4">
@@ -500,22 +579,25 @@ export default function ExamResult() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-slate-900">
-                {isPending ? 'Exam Submitted' : 'Exam Completed'}
+                {isPending ? 'Exam Submitted' : isGraded ? 'Exam Results' : 'Under Review'}
               </h1>
-              <p className="mt-0.5 text-sm text-slate-600">{mockExamResult.examTitle}</p>
-              <p className="text-xs text-slate-500">{mockExamResult.subject}</p>
+              <p className="mt-0.5 text-sm text-slate-600">{exam?.title || submission.examTitle || 'Exam'}</p>
+              <p className="text-xs text-slate-500">{exam?.course || 'Course'}</p>
             </div>
           </div>
 
           {/* Right: Score Display */}
-          {!isPending && (
+          {isGraded && submission.totalScore !== undefined && submission.maxScore !== undefined && (
             <div className="shrink-0 text-right">
               <p className="text-xs font-medium text-slate-500">Score</p>
               <div className="mt-1 flex items-baseline justify-end gap-0.5">
-                <span className="text-3xl font-bold text-slate-900">{mockExamResult.obtainedMarks}</span>
+                <span className="text-3xl font-bold text-slate-900">{submission.totalScore}</span>
                 <span className="text-lg font-medium text-slate-400">/</span>
-                <span className="text-lg font-semibold text-slate-600">{mockExamResult.totalMarks}</span>
+                <span className="text-lg font-semibold text-slate-600">{submission.maxScore}</span>
               </div>
+              {submission.percentage && (
+                <p className="text-xs text-slate-500">{submission.percentage}%</p>
+              )}
             </div>
           )}
         </div>
@@ -526,23 +608,23 @@ export default function ExamResult() {
             <span className="material-symbols-outlined text-lg text-slate-400">quiz</span>
             <div>
               <p className="text-xs text-slate-500">Questions</p>
-              <p className="text-sm font-bold text-slate-900">{mockExamResult.totalQuestions}</p>
+              <p className="text-sm font-bold text-slate-900">{exam?.totalQuestions || 'N/A'}</p>
             </div>
           </div>
           <div className="flex items-center gap-3 rounded-lg bg-slate-50 px-3 py-2.5">
             <span className="material-symbols-outlined text-lg text-slate-400">schedule</span>
             <div>
-              <p className="text-xs text-slate-500">Time Taken</p>
-              <p className="text-sm font-bold text-slate-900">{mockExamResult.duration} min</p>
+              <p className="text-xs text-slate-500">Duration</p>
+              <p className="text-sm font-bold text-slate-900">{exam?.duration ? `${exam.duration} min` : 'N/A'}</p>
             </div>
           </div>
           <div className="flex items-center gap-3 rounded-lg bg-slate-50 px-3 py-2.5">
             <span className="material-symbols-outlined text-lg text-slate-400">
-              {mockExamResult.type === 'mcq' ? 'radio_button_checked' : 'edit_note'}
+              {submission.examType === 'mcq' ? 'radio_button_checked' : 'edit_note'}
             </span>
             <div>
               <p className="text-xs text-slate-500">Type</p>
-              <p className="text-sm font-bold text-slate-900">{mockExamResult.type === 'mcq' ? 'MCQ' : 'Descriptive'}</p>
+              <p className="text-sm font-bold text-slate-900">{submission.examType === 'mcq' ? 'MCQ' : 'Descriptive'}</p>
             </div>
           </div>
         </div>
@@ -562,30 +644,37 @@ export default function ExamResult() {
         )}
       </div>
 
-      {/* Performance Summary - Only show for MCQ or graded short exams */}
-      {!isPending && mockExamResult.type === 'mcq' && (
+      {/* Performance Summary - Only show for graded exams */}
+      {isGraded && (
       <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200/80">
-        <h2 className="text-base font-semibold text-slate-900">Answer Summary</h2>
+        <h2 className="text-base font-semibold text-slate-900">Exam Summary</h2>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <div className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-emerald-50 to-emerald-100/50 p-4 ring-1 ring-emerald-200/50">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-500 text-white">
-                <span className="material-symbols-outlined text-xl">check</span>
-              </div>
-              <div>
-                <p className="text-xs font-medium text-emerald-700">Correct Answers</p>
-                <p className="text-2xl font-bold text-emerald-900">{mockExamResult.correctAnswers}</p>
+          {submission.totalScore !== undefined && submission.maxScore !== undefined && (
+            <div className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-blue-50 to-blue-100/50 p-4 ring-1 ring-blue-200/50">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-500 text-white">
+                  <span className="material-symbols-outlined text-xl">grade</span>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-blue-700">Total Score</p>
+                  <p className="text-2xl font-bold text-blue-900">{submission.totalScore}/{submission.maxScore}</p>
+                  {submission.percentage && (
+                    <p className="text-xs text-blue-600">{submission.percentage}%</p>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-          <div className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-red-50 to-red-100/50 p-4 ring-1 ring-red-200/50">
+          )}
+          <div className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-slate-50 to-slate-100/50 p-4 ring-1 ring-slate-200/50">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-500 text-white">
-                <span className="material-symbols-outlined text-xl">close</span>
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-500 text-white">
+                <span className="material-symbols-outlined text-xl">
+                  {submission.status === 'graded' ? 'verified' : 'schedule'}
+                </span>
               </div>
               <div>
-                <p className="text-xs font-medium text-red-700">Incorrect Answers</p>
-                <p className="text-2xl font-bold text-red-900">{mockExamResult.incorrectAnswers}</p>
+                <p className="text-xs font-medium text-slate-700">Status</p>
+                <p className="text-sm font-bold text-slate-900 capitalize">{submission.status.replace('-', ' ')}</p>
               </div>
             </div>
           </div>
@@ -593,147 +682,58 @@ export default function ExamResult() {
       </div>
       )}
 
-      {/* Detailed Answers */}
-      <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200/80">
-        <div className="border-b border-slate-200 pb-3">
-          <h2 className="text-base font-semibold text-slate-900">Question-wise Analysis</h2>
-          <p className="mt-0.5 text-xs text-slate-600">Review your answers and {mockExamResult.type === 'mcq' ? 'correct solutions' : 'teacher feedback'}</p>
-        </div>
-
-        <div className="mt-4 space-y-3">
-            {mockExamResult.questions.map((question, index) => (
-              <div
-                key={question.id}
-                className="overflow-hidden rounded-lg bg-slate-50 ring-1 ring-slate-200"
-              >
-                {/* Question Header */}
-                <div className="bg-white p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="inline-flex items-center rounded-md bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
-                          Q{index + 1}
-                        </span>
-                        <span className="text-xs font-medium text-slate-500">
-                          {question.marks} marks
-                        </span>
-                        {!isPending && (
-                          <span className={`ml-auto inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                            question.status === 'correct' || question.status === 'graded'
-                              ? 'bg-emerald-100 text-emerald-700'
-                              : question.status === 'incorrect'
-                              ? 'bg-red-100 text-red-700'
-                              : 'bg-amber-100 text-amber-700'
-                          }`}>
-                            {question.status === 'graded' ? `${question.obtainedMarks}/${question.marks}` : question.obtainedMarks === question.marks ? 'Correct' : `${question.obtainedMarks}/${question.marks}`}
-                          </span>
-                        )}
-                      </div>
-                      <p className="mt-2 text-sm leading-relaxed text-slate-900">{question.question}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* MCQ Options */}
-                {mockExamResult.type === 'mcq' && (
-                  <div className="border-t border-slate-200 bg-slate-50 p-5">
-                    <div className="space-y-2.5">{question.options.map((option) => {
-                        const isUserAnswer = option.id === question.userAnswer;
-                        const isCorrectAnswer = option.id === question.correctAnswer;
-
-                        return (
-                          <div
-                            key={option.id}
-                            className={`rounded-xl border-2 bg-white p-4 transition-all ${
-                              isCorrectAnswer
-                                ? 'border-emerald-400 shadow-sm shadow-emerald-100'
-                                : isUserAnswer && !isCorrectAnswer
-                                ? 'border-red-400 shadow-sm shadow-red-100'
-                                : 'border-slate-200'
-                            }`}
-                          >
-                            <div className="flex items-center gap-3">
-                              <div
-                                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 ${
-                                  isCorrectAnswer
-                                    ? 'border-emerald-500 bg-emerald-500'
-                                    : isUserAnswer
-                                    ? 'border-red-500 bg-red-500'
-                                    : 'border-slate-300 bg-white'
-                                }`}
-                              >
-                                {isCorrectAnswer && (
-                                  <span className="material-symbols-outlined text-base font-bold text-white">
-                                    check
-                                  </span>
-                                )}
-                                {isUserAnswer && !isCorrectAnswer && (
-                                  <span className="material-symbols-outlined text-base font-bold text-white">
-                                    close
-                                  </span>
-                                )}
-                              </div>
-                              <span className="flex-1 text-slate-900">{option.text}</span>
-                              {isCorrectAnswer && (
-                                <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-                                  Correct
-                                </span>
-                              )}
-                              {isUserAnswer && !isCorrectAnswer && (
-                                <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
-                                  Your Choice
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* Short Answer */}
-                {mockExamResult.type === 'short' && (
-                  <div className="border-t border-slate-200 bg-slate-50 p-4 space-y-3">
-                    <div>
-                      <div className="mb-2 flex items-center justify-between">
-                        <p className="text-xs font-semibold text-slate-700">Your Answer</p>
-                        {question.status === 'graded' && (
-                          <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-bold text-primary">
-                            {question.obtainedMarks}/{question.marks} marks
-                          </span>
-                        )}
-                      </div>
-                      <div className="rounded-lg bg-white p-3 text-sm leading-relaxed text-slate-900 shadow-sm ring-1 ring-slate-200">
-                        {question.userAnswer}
-                      </div>
-                    </div>
-                    {question.feedback && (
-                      <div>
-                        <div className="mb-2 flex items-center gap-2">
-                          <span className="material-symbols-outlined text-base text-primary">rate_review</span>
-                          <p className="text-xs font-semibold text-slate-700">Teacher's Feedback</p>
-                        </div>
-                        <div className="rounded-lg bg-gradient-to-br from-sky-50 to-blue-50 p-3 text-sm leading-relaxed text-slate-900 shadow-sm ring-1 ring-sky-200">
-                          {question.feedback}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
+      {/* Status Message */}
+      <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200/80">
+        <div className="text-center">
+          {isPending && (
+            <>
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-blue-100">
+                <span className="material-symbols-outlined text-3xl text-blue-600">schedule</span>
               </div>
-            ))}
-          </div>
+              <h3 className="mt-4 text-lg font-semibold text-slate-900">Exam Submitted Successfully</h3>
+              <p className="mt-2 text-sm text-slate-600">
+                Your answers have been submitted and are being reviewed. 
+                {submission.examType === 'mcq' 
+                  ? ' MCQ results will be available shortly.' 
+                  : ' Results will be available once your teacher completes the grading.'}
+              </p>
+            </>
+          )}
+          
+          {isGraded && (
+            <>
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+                <span className="material-symbols-outlined text-3xl text-green-600">verified</span>
+              </div>
+              <h3 className="mt-4 text-lg font-semibold text-slate-900">Results Available</h3>
+              <p className="mt-2 text-sm text-slate-600">
+                Your exam has been graded. Check your score above for details.
+              </p>
+            </>
+          )}
+          
+          {!isPending && !isGraded && (
+            <>
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-amber-100">
+                <span className="material-symbols-outlined text-3xl text-amber-600">pending</span>
+              </div>
+              <h3 className="mt-4 text-lg font-semibold text-slate-900">Under Review</h3>
+              <p className="mt-2 text-sm text-slate-600">
+                Your exam is currently being reviewed. Results will be available soon.
+              </p>
+            </>
+          )}
         </div>
+      </div>
 
       {/* Action Buttons */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 justify-center">
         <button
-          onClick={() => navigate('/dashboard/my-exams')}
+          onClick={() => navigate('/dashboard')}
           className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary/90"
         >
-          <span className="material-symbols-outlined text-lg">arrow_back</span>
-          Back to My Exams
+          <span className="material-symbols-outlined text-lg">dashboard</span>
+          Go to Dashboard
         </button>
         <button
           onClick={() => navigate('/dashboard/available-exams')}
