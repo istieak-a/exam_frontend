@@ -5,7 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 export default function Navbar({ onMenuClick }) {
-  const { user, isTeacher, logout, switchRole } = useAuth();
+  const { user, isTeacher, logout } = useAuth();
   const [accountOpen, setAccountOpen] = useState(false);
   const accountRef = useRef(null);
   const navigate = useNavigate();
@@ -148,28 +148,7 @@ export default function Navbar({ onMenuClick }) {
                   Help & Support
                 </button>
 
-                <hr className="my-2 border-slate-200" />
 
-                {/* Switch Role (Demo) */}
-                <button
-                  onClick={async () => {
-                    try {
-                      await switchRole();
-                      setAccountOpen(false);
-                    } catch (error) {
-                      console.error('Failed to switch role:', error);
-                      // Keep dropdown open to show user that the operation failed
-                      // You could add a toast notification here
-                      alert('Failed to switch role. Please try again.');
-                    }
-                  }}
-                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-primary transition-colors hover:bg-primary/5"
-                >
-                  <span className="material-symbols-outlined text-lg">swap_horiz</span>
-                  Switch to {isTeacher ? 'Student' : 'Teacher'}
-                </button>
-
-                <hr className="my-2 border-slate-200" />
 
                 {/* Logout */}
                 <button

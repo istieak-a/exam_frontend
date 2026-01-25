@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { login as apiLogin, signup as apiSignup, logout as apiLogout, getCurrentUser, switchRole as apiSwitchRole } from '../services/authService';
+import { login as apiLogin, signup as apiSignup, logout as apiLogout, getCurrentUser } from '../services/authService';
 
 const AuthContext = createContext(null);
 
@@ -143,20 +143,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Switch role using backend API
-  const switchRole = async () => {
-    if (!user) return;
-    
-    try {
-      const updatedUser = await apiSwitchRole();
-      setUser(updatedUser);
-      localStorage.setItem('examhub_user', JSON.stringify(updatedUser));
-      console.log('Role switched successfully:', updatedUser.username, 'is now', updatedUser.role);
-    } catch (error) {
-      console.error('Role switch failed:', error);
-      throw error;
-    }
-  };
+
 
   const value = {
     user,
@@ -167,7 +154,7 @@ export const AuthProvider = ({ children }) => {
     login,
     signup,
     logout,
-    switchRole,
+    logout,
     refreshSession,
   };
 

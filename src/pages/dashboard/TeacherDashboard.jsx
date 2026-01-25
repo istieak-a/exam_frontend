@@ -148,24 +148,24 @@ export default function TeacherDashboard() {
           <Link to="/dashboard/submissions">
             <QuickActionCard
               title="View Submissions"
-              description="Review student submissions"
+              description="Review submissions"
               icon="fact_check"
               variant="success"
             />
           </Link>
-          <Link to="/dashboard/grading">
+          <Link to="/dashboard/chat">
             <QuickActionCard
-              title="Grade Exams"
-              description="Grade pending submissions"
-              icon="grade"
+              title="Messages"
+              description="Chat with students"
+              icon="chat"
               variant="warning"
             />
           </Link>
-          <Link to="/dashboard/analytics">
+          <Link to="/dashboard/profile">
             <QuickActionCard
-              title="View Analytics"
-              description="Check performance metrics"
-              icon="analytics"
+              title="My Profile"
+              description="Update your information"
+              icon="account_circle"
               variant="info"
             />
           </Link>

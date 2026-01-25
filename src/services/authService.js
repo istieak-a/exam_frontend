@@ -105,7 +105,7 @@ export default {
   getCurrentUser,
   switchRole,
   getCurrentUser,
-  switchRole,
+  getCurrentUser,
   updateProfile,
   changePassword,
 };
