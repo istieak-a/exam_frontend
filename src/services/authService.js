@@ -75,6 +75,18 @@ export async function updateProfile(profileData) {
 }
 
 /**
+ * Change user password
+ * POST /api/auth/change-password
+ * 
+ * @param {string} currentPassword - Current password
+ * @param {string} newPassword - New password
+ * @returns {Promise<Object>} Success response
+ */
+export async function changePassword(currentPassword, newPassword) {
+  return api.post('/auth/change-password', { currentPassword, newPassword });
+}
+
+/**
  * Switch user role (for demo purposes)
  * POST /api/auth/switch-role
  * 
@@ -92,5 +104,8 @@ export default {
   logout,
   getCurrentUser,
   switchRole,
+  getCurrentUser,
+  switchRole,
   updateProfile,
+  changePassword,
 };

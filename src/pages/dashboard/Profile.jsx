@@ -4,15 +4,26 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 
 export default function Profile() {
-  const { user } = useAuth();
+  const { user, refreshSession } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [formData, setFormData] = useState({
-    name: user?.name || '',
+    fullName: user?.fullName || '',
     email: user?.email || '',
     phone: '',
     bio: '',
   });
+
+  useEffect(() => {
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        fullName: user.fullName || '',
+        email: user.email || '',
+      }));
+    }
+  }, [user]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -26,11 +37,27 @@ export default function Profile() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
-    console.log('Saving profile:', formData);
-    setIsEditing(false);
-    // In a real app, this would save to backend
+    try {
+      setIsLoading(true);
+      const { updateProfile } = await import('../../services/authService');
+      
+      await updateProfile({
+        fullName: formData.fullName,
+        email: formData.email,
+        // Phone and bio are not yet supported by backend User model, but we successfully updated supported fields
+      });
+      
+      await refreshSession();
+      setIsEditing(false);
+      // Optional: Add success toast
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      // Optional: Add error toast
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const getInitials = (name) => {
@@ -40,6 +67,15 @@ export default function Profile() {
       .join('')
       .toUpperCase()
       .slice(0, 2) || 'U';
+  };
+  
+  const formatDate = (timestamp) => {
+    if (!timestamp) return 'N/A';
+    return new Date(timestamp).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
   };
 
   if (isLoading) {
@@ -62,9 +98,9 @@ export default function Profile() {
           <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200/80">
             <div className="text-center">
               <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-primary text-2xl font-bold text-white">
-                {getInitials(user?.name)}
+                {getInitials(user?.fullName)}
               </div>
-              <h2 className="mt-4 text-xl font-bold text-slate-900">{user?.name}</h2>
+              <h2 className="mt-4 text-xl font-bold text-slate-900">{user?.fullName}</h2>
               <p className="mt-1 text-sm text-slate-600">{user?.email}</p>
               <div className="mt-3 inline-flex items-center gap-2 rounded-lg bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary">
                 <span className="material-symbols-outlined text-base">
@@ -82,7 +118,7 @@ export default function Profile() {
                   </div>
                   <div>
                     <p className="text-xs text-slate-500">Joined</p>
-                    <p className="text-sm font-medium text-slate-900">{user?.joinedDate}</p>
+                    <p className="text-sm font-medium text-slate-900">{formatDate(user?.createdAt)}</p>
                   </div>
                 </div>
                 {user?.studentId && (
@@ -138,8 +174,8 @@ export default function Profile() {
                 <label className="block text-sm font-medium text-slate-700">Full Name</label>
                 <input
                   type="text"
-                  name="name"
-                  value={formData.name}
+                  name="fullName"
+                  value={formData.fullName}
                   onChange={handleChange}
                   disabled={!isEditing}
                   className="mt-1 w-full rounded-lg border-0 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 ring-1 ring-slate-200/80 disabled:opacity-60 focus:bg-white focus:ring-2 focus:ring-primary"
@@ -208,7 +244,10 @@ export default function Profile() {
           <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200/80">
             <h3 className="mb-6 text-lg font-semibold text-slate-900">Security</h3>
             <div className="space-y-4">
-              <button className="flex w-full items-center justify-between rounded-lg bg-slate-50 p-4 text-left transition-colors hover:bg-slate-100">
+              <button 
+                onClick={() => setIsChangePasswordOpen(true)}
+                className="flex w-full items-center justify-between rounded-lg bg-slate-50 p-4 text-left transition-colors hover:bg-slate-100"
+              >
                 <div className="flex items-center gap-3">
                   <span className="material-symbols-outlined text-slate-600">lock</span>
                   <div>
@@ -220,22 +259,146 @@ export default function Profile() {
                   chevron_right
                 </span>
               </button>
-
-              <button className="flex w-full items-center justify-between rounded-lg bg-slate-50 p-4 text-left transition-colors hover:bg-slate-100">
-                <div className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-slate-600">security</span>
-                  <div>
-                    <p className="font-medium text-slate-900">Two-Factor Authentication</p>
-                    <p className="text-sm text-slate-600">Add extra security to your account</p>
-                  </div>
-                </div>
-                <span className="material-symbols-outlined text-slate-400">
-                  chevron_right
-                </span>
-              </button>
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Change Password Modal */}
+      {isChangePasswordOpen && (
+        <ChangePasswordModal 
+          onClose={() => setIsChangePasswordOpen(false)} 
+        />
+      )}
+    </div>
+  );
+}
+
+function ChangePasswordModal({ onClose }) {
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  // const { changePassword } = require('../../services/authService'); // Removed require
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordData(prev => ({ ...prev, [name]: value }));
+    setError('');
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setError('New passwords do not match');
+      return;
+    }
+    if (passwordData.newPassword.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setError('');
+      
+      const { changePassword } = await import('../../services/authService');
+      await changePassword(passwordData.currentPassword, passwordData.newPassword);
+      
+      setSuccess('Password changed successfully');
+      setTimeout(() => {
+        onClose();
+        setSuccess('');
+        setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      }, 1500);
+    } catch (err) {
+      setError(err.message || 'Failed to change password');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl ring-1 ring-slate-200">
+        <div className="mb-6 flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-slate-900">Change Password</h3>
+          <button 
+            onClick={onClose}
+            className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+          >
+            <span className="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        {error && (
+          <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-600">
+            {error}
+          </div>
+        )}
+
+        {success && (
+          <div className="mb-4 rounded-lg bg-green-50 p-3 text-sm text-green-600">
+            {success}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700">Current Password</label>
+            <input
+              type="password"
+              name="currentPassword"
+              value={passwordData.currentPassword}
+              onChange={handleChange}
+              required
+              className="mt-1 w-full rounded-lg border-slate-200 bg-slate-50 px-4 py-2.5 text-sm ring-1 ring-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700">New Password</label>
+            <input
+              type="password"
+              name="newPassword"
+              value={passwordData.newPassword}
+              onChange={handleChange}
+              required
+              className="mt-1 w-full rounded-lg border-slate-200 bg-slate-50 px-4 py-2.5 text-sm ring-1 ring-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700">Confirm New Password</label>
+            <input
+              type="password"
+              name="confirmPassword"
+              value={passwordData.confirmPassword}
+              onChange={handleChange}
+              required
+              className="mt-1 w-full rounded-lg border-slate-200 bg-slate-50 px-4 py-2.5 text-sm ring-1 ring-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+
+          <div className="mt-6 flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50"
+            >
+              {isLoading ? 'Saving...' : 'Update Password'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

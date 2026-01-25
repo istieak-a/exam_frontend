@@ -158,12 +158,6 @@ function Login() {
                 checked={formData.rememberMe}
                 onChange={handleChange}
               />
-              <Link 
-                to="/forgot-password" 
-                className="text-sm text-primary hover:underline font-medium"
-              >
-                Forgot password?
-              </Link>
             </div>
 
             <Button 
