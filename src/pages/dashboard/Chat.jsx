@@ -12,24 +12,21 @@ export default function Chat() {
   const [messageInput, setMessageInput] = useState('');
   const [messages, setMessages] = useState([]);
   const [connectionStatus, setConnectionStatus] = useState('disconnected'); // 'disconnected', 'connecting', 'connected', 'error'
+  const [hasMore, setHasMore] = useState(true);
+  const scrollContainerRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const [isFetchingOld, setIsFetchingOld] = useState(false);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
+  // Initial load
   useEffect(() => {
     if (!user) return;
-
-    let unsubscribeGlobal;
-    let unsubscribeConnect;
-    let unsubscribeDisconnect;
+    
+    // Reset state on user change
+    setMessages([]);
+    setHasMore(true);
+    
     let isMounted = true;
-
+    
     const initializeChat = async () => {
       try {
         setIsLoading(true);
@@ -37,70 +34,24 @@ export default function Chat() {
         setConnectionStatus('connecting');
 
         // Load historical messages from REST API
-        const historicalMessages = await chatService.getGlobalMessages();
+        // Backend returns Newest -> Oldest. We want to display Oldest -> Newest.
+        const historicalMessages = await chatService.getGlobalMessages(50);
         
         if (isMounted) {
-          setMessages(historicalMessages.map(msg => ({
-            id: msg.id || `${msg.timestamp}-${msg.senderId}`,
-            user: {
-              name: msg.senderName,
-              role: msg.senderRole?.toLowerCase() || 'student'
-            },
-            text: msg.content,
-            time: formatTime(msg.timestamp),
-            isOwn: msg.senderId === user.id,
-            timestamp: msg.timestamp
-          })));
+          // Reverse to show oldest first
+          const validMessages = historicalMessages.map(transformMessage).reverse();
+          setMessages(validMessages);
+          setHasMore(historicalMessages.length >= 50);
         }
 
-        // Connect to WebSocket
         await websocketService.connect(user);
         
         if (isMounted) {
           setConnectionStatus('connected');
           setIsConnecting(false);
+          // Scroll to bottom on initial load
+          setTimeout(scrollToBottom, 100);
         }
-
-        // Subscribe to global messages
-        unsubscribeGlobal = websocketService.onGlobalMessage((chatMessage) => {
-          if (!isMounted) return;
-          
-          const newMessage = {
-            id: chatMessage.id || `${chatMessage.timestamp}-${chatMessage.senderId}`,
-            user: {
-              name: chatMessage.senderName,
-              role: chatMessage.senderRole?.toLowerCase() || 'student'
-            },
-            text: chatMessage.content,
-            time: formatTime(chatMessage.timestamp),
-            isOwn: chatMessage.senderId === user.id,
-            isNew: true,
-            timestamp: chatMessage.timestamp
-          };
-
-          setMessages(prev => [...prev, newMessage]);
-          
-          // Remove the "new" flag after animation
-          setTimeout(() => {
-            setMessages(prev => prev.map(msg => 
-              msg.id === newMessage.id ? { ...msg, isNew: false } : msg
-            ));
-          }, 300);
-        });
-
-        // Connection status handlers
-        unsubscribeConnect = websocketService.onConnect(() => {
-          if (isMounted) {
-            setConnectionStatus('connected');
-            setIsConnecting(false);
-          }
-        });
-
-        unsubscribeDisconnect = websocketService.onDisconnect(() => {
-          if (isMounted) {
-            setConnectionStatus('disconnected');
-          }
-        });
 
       } catch (error) {
         console.error('Failed to initialize chat:', error);
@@ -117,15 +68,107 @@ export default function Chat() {
 
     initializeChat();
 
-    // Cleanup on unmount
+    // Setup listeners
+    const unsubscribeGlobal = websocketService.onGlobalMessage((chatMessage) => {
+      if (!isMounted) return;
+      const newMessage = { ...transformMessage(chatMessage), isNew: true };
+      
+      setMessages(prev => {
+        // Prevent duplicates
+        if (prev.some(m => m.id === newMessage.id)) return prev;
+        return [...prev, newMessage];
+      });
+      
+      // Auto-scroll to bottom for new messages
+      setTimeout(scrollToBottom, 100);
+
+      // Remove "new" flag
+      setTimeout(() => {
+        setMessages(prev => prev.map(msg => 
+          msg.id === newMessage.id ? { ...msg, isNew: false } : msg
+        ));
+      }, 300);
+    });
+
+    const unsubscribeConnect = websocketService.onConnect(() => {
+      if (isMounted) {
+        setConnectionStatus('connected');
+        setIsConnecting(false);
+      }
+    });
+
+    const unsubscribeDisconnect = websocketService.onDisconnect(() => {
+      if (isMounted) {
+        setConnectionStatus('disconnected');
+      }
+    });
+
     return () => {
       isMounted = false;
-      if (unsubscribeGlobal) unsubscribeGlobal();
-      if (unsubscribeConnect) unsubscribeConnect();
-      if (unsubscribeDisconnect) unsubscribeDisconnect();
-      // Don't disconnect here as other components might be using it
+      unsubscribeGlobal();
+      unsubscribeConnect();
+      unsubscribeDisconnect();
     };
   }, [user]);
+
+  const transformMessage = (msg) => ({
+    id: msg.id || `${msg.timestamp}-${msg.senderId}`,
+    user: {
+      name: msg.senderName,
+      role: msg.senderRole?.toLowerCase() || 'student'
+    },
+    text: msg.content,
+    time: formatTime(msg.timestamp),
+    isOwn: msg.senderId === user.id,
+    timestamp: msg.timestamp
+  });
+
+  const loadMoreMessages = async () => {
+    if (isFetchingOld || !hasMore || messages.length === 0) return;
+
+    try {
+      setIsFetchingOld(true);
+      const oldestMessage = messages[0];
+      const olderMessages = await chatService.getGlobalMessages(50, oldestMessage.timestamp);
+      
+      if (olderMessages.length < 50) {
+        setHasMore(false);
+      }
+
+      if (olderMessages.length > 0) {
+        const container = scrollContainerRef.current;
+        const oldScrollHeight = container.scrollHeight;
+        
+        // Reverse to maintain Oldest -> Newest order in the list
+        const newMessages = olderMessages.map(transformMessage).reverse();
+        
+        setMessages(prev => [...newMessages, ...prev]);
+        
+        // Restore scroll position
+        requestAnimationFrame(() => {
+          if (container) {
+            const newScrollHeight = container.scrollHeight;
+            container.scrollTop = newScrollHeight - oldScrollHeight;
+          }
+        });
+      }
+    } catch (error) {
+      console.error("Failed to load older messages", error);
+    } finally {
+      setIsFetchingOld(false);
+    }
+  };
+
+  const handleScroll = (e) => {
+    const { scrollTop } = e.target;
+    if (scrollTop === 0 && hasMore) {
+      loadMoreMessages();
+    }
+  };
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   const formatTime = (timestamp) => {
     const date = new Date(timestamp);
@@ -137,9 +180,9 @@ export default function Chat() {
     if (!messageInput.trim() || !websocketService.isConnected()) return;
     
     try {
-      // Send message via WebSocket
       websocketService.sendGlobalMessage(messageInput, user);
       setMessageInput('');
+      setTimeout(scrollToBottom, 100);
     } catch (error) {
       console.error('Failed to send message:', error);
       alert('Failed to send message. Please check your connection.');
@@ -211,63 +254,90 @@ export default function Chat() {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 space-y-4 overflow-y-auto p-4">
+        <div 
+          ref={scrollContainerRef}
+          onScroll={handleScroll}
+          className="flex-1 space-y-6 overflow-y-auto p-4 bg-slate-50"
+        >
+          {isFetchingOld && (
+             <div className="flex justify-center py-2">
+               <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-primary"></div>
+             </div>
+          )}
           {messages.length === 0 ? (
             <div className="flex h-full items-center justify-center text-center">
-              <div>
-                <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
-                  <span className="material-symbols-outlined text-3xl text-slate-400">chat_bubble</span>
+              <div className="max-w-sm rounded-2xl bg-white p-8 shadow-sm ring-1 ring-slate-100">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                  <span className="material-symbols-outlined text-3xl text-primary">chat_bubble</span>
                 </div>
-                <p className="text-sm font-medium text-slate-600">No messages yet</p>
-                <p className="text-xs text-slate-400 mt-1">Be the first to say something!</p>
+                <h3 className="text-lg font-semibold text-slate-900">Welcome to Global Chat!</h3>
+                <p className="mt-2 text-sm text-slate-500">
+                  This is the place to connect with everyone. Say hello and start a conversation!
+                </p>
+                <button 
+                  onClick={() => document.querySelector('input[type="text"]')?.focus()}
+                  className="mt-6 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-primary/90 transition-colors"
+                >
+                  Start chatting
+                </button>
               </div>
             </div>
           ) : (
-            messages.map((message, index) => (
-              <div
-                key={message.id}
-                className={`flex animate-in fade-in slide-in-from-bottom-4 duration-300 ${message.isOwn ? 'justify-end' : 'justify-start'}`}
-                style={{ animationDelay: `${index * 50}ms` }}
-              >
-                <div className={`flex gap-3 max-w-[80%] ${message.isOwn ? 'flex-row-reverse' : ''}`}>
-                  {!message.isOwn && (
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-blue-400 text-xs font-bold text-white shadow-sm">
-                      {message.user.name.split(' ').map(n => n[0]).join('')}
+            messages.map((message, index) => {
+              const isLastInGroup = index === messages.length - 1 || messages[index + 1].user.name !== message.user.name;
+              
+              return (
+                <div
+                  key={message.id}
+                  className={`flex animate-in fade-in slide-in-from-bottom-2 duration-300 ${message.isOwn ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div className={`flex gap-3 max-w-[85%] ${message.isOwn ? 'flex-row-reverse' : ''}`}>
+                    {/* Avatar */}
+                    <div className={`flex-shrink-0 flex flex-col justify-end ${!isLastInGroup ? 'invisible' : ''}`}>
+                      <div className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white shadow-sm ring-2 ring-white ${
+                         message.isOwn 
+                          ? 'bg-primary' 
+                          : message.user.role === 'teacher' ? 'bg-indigo-500' : 'bg-blue-400'
+                      }`}>
+                        {message.user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                      </div>
                     </div>
-                  )}
-                  <div>
-                    {!message.isOwn && (
-                      <p className="mb-1 text-xs font-medium text-slate-700">
-                        {message.user.name}
-                        <span className={`ml-1.5 inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${
-                          message.user.role === 'teacher' 
-                            ? 'bg-primary/10 text-primary' 
-                            : 'bg-blue-50 text-blue-600'
-                        }`}>
-                          {message.user.role === 'teacher' ? '👨‍🏫 Teacher' : '👨‍🎓 Student'}
-                        </span>
-                      </p>
-                    )}
-                    <div
-                      className={`rounded-2xl px-4 py-2.5 shadow-sm transition-all ${
-                        message.isOwn
-                          ? 'bg-primary text-white'
-                          : 'bg-[#F0F9FF] text-slate-900 border border-blue-100'
-                      } ${message.isNew ? 'scale-95 opacity-0 animate-in' : ''}`}
-                    >
-                      <p className="text-sm">{message.text}</p>
-                      <p
-                        className={`mt-1 text-xs ${
-                          message.isOwn ? 'text-primary-foreground/70' : 'text-slate-500'
-                        }`}
+
+                    <div className={`flex flex-col ${message.isOwn ? 'items-end' : 'items-start'}`}>
+                      {/* Name - only show for first message in group of received messages */}
+                      {!message.isOwn && (index === 0 || messages[index - 1].user.name !== message.user.name) && (
+                        <div className="mb-1 ml-1 flex items-center gap-2">
+                          <span className="text-xs font-semibold text-slate-700">{message.user.name}</span>
+                          {message.user.role === 'teacher' && (
+                            <span className="rounded-full bg-indigo-50 px-1.5 py-0.5 text-[10px] font-medium text-indigo-600 ring-1 ring-inset ring-indigo-500/10">
+                              Teacher
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Message Bubble */}
+                      <div
+                        className={`group relative px-4 py-2.5 shadow-sm transition-all hover:shadow-md ${
+                          message.isOwn
+                            ? 'bg-primary text-white rounded-2xl rounded-tr-sm'
+                            : 'bg-white text-slate-700 ring-1 ring-slate-200/50 rounded-2xl rounded-tl-sm'
+                        } ${message.isNew ? 'scale-95 opacity-0 animate-in zoom-in-50 duration-200' : ''}`}
                       >
-                        {message.time}
-                      </p>
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.text}</p>
+                        <p
+                          className={`mt-1 text-[10px] opacity-0 transition-opacity group-hover:opacity-100 ${
+                            message.isOwn ? 'text-white/80' : 'text-slate-400'
+                          }`}
+                        >
+                          {message.time}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
           <div ref={messagesEndRef} />
         </div>

@@ -24,11 +24,11 @@ class WebSocketService {
       }
 
       // Create STOMP client with SockJS
+      const socket = new SockJS(`${WEBSOCKET_URL}?userId=${user.id}`);
       this.client = new Client({
-        webSocketFactory: () => new SockJS(WEBSOCKET_URL),
+        webSocketFactory: () => socket,
         connectHeaders: {
-          userId: user.id,
-          username: user.username
+          // Standard STOMP headers if needed, but we rely on query param for Principal
         },
         debug: (str) => {
           console.log('[WebSocket Debug]', str);
@@ -36,33 +36,33 @@ class WebSocketService {
         reconnectDelay: 5000,
         heartbeatIncoming: 4000,
         heartbeatOutgoing: 4000,
-        
+
         onConnect: () => {
           console.log('✅ WebSocket Connected');
           this.connected = true;
-          
+
           // Subscribe to global messages
           this.subscribeToGlobal(user);
-          
+
           // Subscribe to private messages
           this.subscribeToPrivate(user);
-          
+
           // Notify connection callbacks
           this.connectionCallbacks.forEach(callback => callback());
-          
+
           resolve();
         },
-        
+
         onStompError: (frame) => {
           console.error('❌ STOMP Error:', frame);
           this.connected = false;
           reject(new Error(frame.headers?.message || 'WebSocket connection error'));
         },
-        
+
         onWebSocketClose: () => {
           console.log('🔌 WebSocket Disconnected');
           this.connected = false;
-          
+
           // Notify disconnection callbacks
           this.disconnectionCallbacks.forEach(callback => callback());
         }
@@ -80,7 +80,7 @@ class WebSocketService {
         subscription.unsubscribe();
       });
       this.subscriptions = {};
-      
+
       // Deactivate the client
       this.client.deactivate();
       this.connected = false;
@@ -98,7 +98,7 @@ class WebSocketService {
       try {
         const chatMessage = JSON.parse(message.body);
         console.log('📨 Global message received:', chatMessage);
-        
+
         // Notify all global message callbacks
         this.messageCallbacks.global.forEach(callback => {
           callback(chatMessage);
@@ -117,11 +117,12 @@ class WebSocketService {
       return;
     }
 
-    const subscription = this.client.subscribe(`/queue/private/${user.id}`, (message) => {
+    // Subscribe to user-specific queue (Standard Spring STOMP path)
+    const subscription = this.client.subscribe('/user/queue/messages', (message) => {
       try {
         const chatMessage = JSON.parse(message.body);
         console.log('📨 Private message received:', chatMessage);
-        
+
         // Notify all private message callbacks
         this.messageCallbacks.private.forEach(callback => {
           callback(chatMessage);
@@ -181,7 +182,7 @@ class WebSocketService {
 
   onGlobalMessage(callback) {
     this.messageCallbacks.global.push(callback);
-    
+
     // Return unsubscribe function
     return () => {
       this.messageCallbacks.global = this.messageCallbacks.global.filter(cb => cb !== callback);
@@ -190,7 +191,7 @@ class WebSocketService {
 
   onPrivateMessage(callback) {
     this.messageCallbacks.private.push(callback);
-    
+
     // Return unsubscribe function
     return () => {
       this.messageCallbacks.private = this.messageCallbacks.private.filter(cb => cb !== callback);
@@ -199,7 +200,7 @@ class WebSocketService {
 
   onConnect(callback) {
     this.connectionCallbacks.push(callback);
-    
+
     // Return unsubscribe function
     return () => {
       this.connectionCallbacks = this.connectionCallbacks.filter(cb => cb !== callback);
@@ -208,7 +209,7 @@ class WebSocketService {
 
   onDisconnect(callback) {
     this.disconnectionCallbacks.push(callback);
-    
+
     // Return unsubscribe function
     return () => {
       this.disconnectionCallbacks = this.disconnectionCallbacks.filter(cb => cb !== callback);

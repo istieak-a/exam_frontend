@@ -9,10 +9,20 @@ const chatService = {
   /**
    * Get global chat messages
    */
-  async getGlobalMessages() {
+  /**
+   * Get global chat messages
+   * @param {number} limit - Number of messages to fetch
+   * @param {number} before - Timestamp to fetch messages before
+   */
+  async getGlobalMessages(limit = 50, before) {
     try {
-      const response = await api.get('/api/chat/global');
-      return response.data || [];
+      const params = new URLSearchParams({ limit });
+      if (before) {
+        params.append('before', before);
+      }
+
+      const response = await api.get(`/chat/global?${params.toString()}`);
+      return response || [];
     } catch (error) {
       console.error('Failed to fetch global messages:', error);
       return [];
@@ -23,7 +33,7 @@ const chatService = {
    * Post a global message (REST alternative to WebSocket)
    */
   async postGlobalMessage(content) {
-    const response = await api.post('/api/chat/global', { content });
+    const response = await api.post('/chat/global', { content });
     return response.data;
   },
 
@@ -31,7 +41,7 @@ const chatService = {
    * Get private messages between two users
    */
   async getPrivateMessages(otherUserId) {
-    const response = await api.get(`/api/chat/private/${otherUserId}`);
+    const response = await api.get(`/chat/private/${otherUserId}`);
     return response.data || [];
   },
 
@@ -39,7 +49,7 @@ const chatService = {
    * Post a private message (REST alternative to WebSocket)
    */
   async postPrivateMessage(recipientId, content) {
-    const response = await api.post('/api/chat/private', {
+    const response = await api.post('/chat/private', {
       recipientId,
       content,
     });
@@ -50,7 +60,7 @@ const chatService = {
    * Get list of conversations
    */
   async getConversations() {
-    const response = await api.get('/api/chat/conversations');
+    const response = await api.get('/chat/conversations');
     return response.data || [];
   },
 };
