@@ -1,31 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { ExamCard, ExamCardSkeleton } from '../../components/dashboard';
-import { getAvailableExams } from '../../services/examService';
+import { useState } from 'react';
+import { ExamCard } from '../../components/dashboard';
+import { availableExams as mockAvailableExams } from '../../data/mockData';
 
 export default function AvailableExams() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [exams, setExams] = useState([]);
+  const [exams] = useState(mockAvailableExams);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterDifficulty, setFilterDifficulty] = useState('all');
-
-  useEffect(() => {
-    const fetchExams = async () => {
-      try {
-        setIsLoading(true);
-        const data = await getAvailableExams();
-        setExams(Array.isArray(data) ? data : data?.content || []);
-      } catch (err) {
-        console.error('Failed to fetch available exams:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchExams();
-  }, []);
 
   const filteredExams = exams.filter((exam) => {
     const course = exam.course || exam.subject || '';
@@ -37,8 +20,6 @@ export default function AvailableExams() {
     const matchesDifficulty = filterDifficulty === 'all' || exam.difficulty === filterDifficulty;
     return matchesSearch && matchesStatus && matchesDifficulty;
   });
-
-  if (isLoading) return <PageSkeleton />;
 
   return (
     <div className="space-y-8">
@@ -110,24 +91,3 @@ export default function AvailableExams() {
   );
 }
 
-function PageSkeleton() {
-  return (
-    <div className="space-y-8">
-      <div className="space-y-2 border-b border-hairline pb-6">
-        <div className="h-3 w-20 animate-pulse rounded bg-hairline" />
-        <div className="h-10 w-64 animate-pulse rounded bg-hairline" />
-        <div className="h-3 w-40 animate-pulse rounded bg-hairline" />
-      </div>
-      <div className="flex gap-3">
-        <div className="h-10 flex-1 animate-pulse rounded-md bg-hairline" />
-        <div className="h-10 w-32 animate-pulse rounded-md bg-hairline" />
-        <div className="h-10 w-32 animate-pulse rounded-md bg-hairline" />
-      </div>
-      <div className="grid gap-5 lg:grid-cols-2">
-        {[...Array(4)].map((_, i) => (
-          <ExamCardSkeleton key={i} />
-        ))}
-      </div>
-    </div>
-  );
-}

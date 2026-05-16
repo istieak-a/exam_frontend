@@ -1,10 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Badge } from '../../components/ui';
 import { StatCard } from '../../components/dashboard';
-import { getAllSubmissions, getTeacherExams } from '../../services/examService';
+import {
+  submissions as mockSubmissions,
+  teacherExams as mockTeacherExams,
+} from '../../data/mockData';
 
 const statusBadge = {
   pending: { variant: 'warning', label: 'Pending', icon: 'pending_actions' },
@@ -13,38 +16,11 @@ const statusBadge = {
 };
 
 export default function Submissions() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [submissions, setSubmissions] = useState([]);
-  const [exams, setExams] = useState([]);
+  const [submissions] = useState(mockSubmissions);
+  const [exams] = useState(mockTeacherExams);
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedExam, setSelectedExam] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
-        const [submissionsData, examsData] = await Promise.all([
-          getAllSubmissions(),
-          getTeacherExams(),
-        ]);
-
-        const submissionsList = Array.isArray(submissionsData)
-          ? submissionsData
-          : submissionsData?.content || [];
-        const examsList = Array.isArray(examsData) ? examsData : examsData?.content || [];
-
-        setSubmissions(submissionsList);
-        setExams(examsList);
-      } catch (err) {
-        console.error('Failed to fetch submissions:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
 
   const filteredSubmissions = submissions.filter((submission) => {
     const matchesStatus = filterStatus === 'all' || submission.status === filterStatus;
@@ -61,8 +37,6 @@ export default function Submissions() {
     inReview: submissions.filter((s) => s.status === 'in-review').length,
     graded: submissions.filter((s) => s.status === 'graded').length,
   };
-
-  if (isLoading) return <PageSkeleton />;
 
   const tabs = [
     { id: 'all', label: 'All', count: stats.all },
@@ -259,25 +233,3 @@ function SubmissionRow({ submission }) {
   );
 }
 
-function PageSkeleton() {
-  return (
-    <div className="space-y-8">
-      <div className="space-y-2 border-b border-hairline pb-6">
-        <div className="h-3 w-20 animate-pulse rounded bg-hairline" />
-        <div className="h-10 w-64 animate-pulse rounded bg-hairline" />
-        <div className="h-3 w-40 animate-pulse rounded bg-hairline" />
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[...Array(4)].map((_, i) => (
-          <div key={i} className="h-28 animate-pulse rounded-lg bg-hairline" />
-        ))}
-      </div>
-      <div className="h-40 animate-pulse rounded-lg bg-hairline" />
-      <div className="space-y-4">
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="h-32 animate-pulse rounded-lg bg-hairline" />
-        ))}
-      </div>
-    </div>
-  );
-}

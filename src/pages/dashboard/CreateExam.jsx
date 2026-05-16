@@ -2,21 +2,17 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { 
-  createExam, 
-  updateExam, 
-  getExamById, 
-  parseExamResponse 
-} from '../../services/examService';
+import {
+  teacherExams as mockTeacherExams,
+  examQuestions as mockExamQuestions,
+} from '../../data/mockData';
 
 export default function CreateExam() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const editId = searchParams.get('edit');
   const isEditMode = !!editId;
-  
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
+
   const [examType, setExamType] = useState('mcq'); // 'mcq' or 'cq'
   const [examData, setExamData] = useState({
     title: '',
@@ -33,39 +29,25 @@ export default function CreateExam() {
   const [questions, setQuestions] = useState([]);
   const [showQuestionForm, setShowQuestionForm] = useState(false);
   const [errors, setErrors] = useState({});
-  const [submitError, setSubmitError] = useState(null);
 
   useEffect(() => {
-    const loadExamData = async () => {
-      if (isEditMode) {
-        try {
-          const response = await getExamById(editId, { includeQuestions: true });
-          const exam = parseExamResponse(response);
-          
-          if (exam) {
-            setExamData({
-              title: exam.title || '',
-              course: exam.course || '',
-              description: exam.description || '',
-              duration: exam.duration?.toString() || '',
-              totalMarks: exam.totalMarks?.toString() || '',
-              passingMarks: exam.passingMarks?.toString() || '',
-              startDate: exam.startDate || '',
-              startTime: exam.startTime || '',
-              endDate: exam.endDate || '',
-              endTime: exam.endTime || '',
-            });
-            setQuestions(exam.questions || []);
-            setExamType(exam.examType || 'mcq');
-          }
-        } catch (error) {
-          console.error('Failed to load exam data:', error);
-        }
-      }
-      setIsLoading(false);
-    };
-    
-    loadExamData();
+    if (!isEditMode) return;
+    const exam = mockTeacherExams.find((e) => e.id === editId);
+    if (!exam) return;
+    setExamData({
+      title: exam.title || '',
+      course: exam.course || '',
+      description: exam.description || '',
+      duration: (exam.duration ?? exam.durationMinutes ?? '').toString(),
+      totalMarks: (exam.totalMarks ?? '').toString(),
+      passingMarks: (exam.passingMarks ?? '').toString(),
+      startDate: exam.startDate || '',
+      startTime: exam.startTime || '',
+      endDate: exam.endDate || exam.dueDate || '',
+      endTime: exam.endTime || '',
+    });
+    setQuestions(mockExamQuestions[editId] || []);
+    setExamType((exam.examType || 'mcq').toLowerCase());
   }, [editId, isEditMode]);
 
   const handleInputChange = (e) => {
@@ -166,107 +148,14 @@ export default function CreateExam() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    console.log('🚀 Submit button clicked - starting exam creation process');
-    setSubmitError(null);
-    
-    // Client-side validation
-    console.log('📝 Validating form data...');
-    if (!validateForm()) {
-      console.log('❌ Form validation failed');
-      return;
-    }
-    
-    console.log('✅ Form validation passed, preparing to save exam');
-    setIsSaving(true);
-    
-    try {
-      const payload = {
-        ...examData,
-        examType,
-        questions,
-      };
-      
-      console.log('📤 Sending exam data to API:', payload);
-      
-      if (isEditMode) {
-        console.log(`🔄 Updating exam with ID: ${editId}`);
-        await updateExam(editId, payload);
-        navigate(`/dashboard/exam/${editId}`);
-      } else {
-        console.log('🆕 Creating new exam');
-        const result = await createExam(payload);
-        console.log('✅ Exam created successfully:', result);
-        navigate('/dashboard/exams');
-      }
-    } catch (error) {
-      console.error('❌ Failed to save exam:', error);
-      
-      // Handle structured validation errors from backend
-      if (error.status === 400 && error.validationErrors) {
-        // Map backend field names to frontend field names if needed
-        const backendErrors = error.validationErrors;
-        const mappedErrors = {};
-        
-        Object.keys(backendErrors).forEach(key => {
-          // Handle field name mapping (e.g., durationMinutes -> duration)
-          const fieldMap = {
-            durationMinutes: 'duration',
-          };
-          const frontendKey = fieldMap[key] || key;
-          mappedErrors[frontendKey] = backendErrors[key];
-        });
-        
-        setErrors(mappedErrors);
-        setSubmitError('Please fix the validation errors below');
-      } else if (error.status === 409) {
-        // Conflict error - exam has submissions
-        setSubmitError(error.message || 'Cannot update exam: Students have already submitted answers');
-      } else if (error.status === 403) {
-        setSubmitError('You do not have permission to perform this action');
-      } else if (error.status === 404) {
-        setSubmitError('Exam not found');
-      } else {
-        setSubmitError(error.message || 'Failed to save exam. Please try again.');
-      }
-    } finally {
-      setIsSaving(false);
-      console.log('🏁 Exam submission process completed');
-    }
+    if (!validateForm()) return;
+    navigate(isEditMode ? `/dashboard/exam/${editId}` : '/dashboard/exams');
   };
-
-  if (isLoading) {
-    return <PageSkeleton />;
-  }
 
   return (
     <div className="space-y-6">
-      {/* Error Alert */}
-      {submitError && (
-        <div className="rounded-lg border border-error/25 bg-error/10 p-4">
-          <div className="flex items-start gap-3">
-            <span className="material-symbols-outlined text-[#8a3636]">error</span>
-            <div>
-              <h3 className="font-medium text-red-800">{submitError}</h3>
-              {Object.keys(errors).length > 0 && (
-                <ul className="mt-2 list-inside list-disc text-sm text-[#8a3636]">
-                  {Object.entries(errors).map(([field, message]) => (
-                    <li key={field}>{message}</li>
-                  ))}
-                </ul>
-              )}
-            </div>
-            <button
-              onClick={() => setSubmitError(null)}
-              className="ml-auto text-[#8a3636] hover:text-red-800"
-            >
-              <span className="material-symbols-outlined">close</span>
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -282,30 +171,19 @@ export default function CreateExam() {
         <div className="flex gap-2">
           <button
             onClick={() => navigate(isEditMode ? `/dashboard/exam/${editId}` : '/dashboard/exams')}
-            disabled={isSaving}
-            className="flex items-center gap-2 rounded-lg border border-hairline px-4 py-2.5 font-medium text-body-strong transition-all hover:bg-surface-soft disabled:opacity-50"
+            className="flex items-center gap-2 rounded-lg border border-hairline px-4 py-2.5 font-medium text-body-strong transition-all hover:bg-surface-soft"
           >
             <span className="material-symbols-outlined text-xl">close</span>
             Cancel
           </button>
           <button
             onClick={handleSubmit}
-            disabled={isSaving}
-            className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-5 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-5 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active"
           >
-            {isSaving ? (
-              <>
-                <span className="material-symbols-outlined text-xl animate-spin">progress_activity</span>
-                Saving...
-              </>
-            ) : (
-              <>
-                <span className="material-symbols-outlined text-xl">
-                  {isEditMode ? 'save' : 'check_circle'}
-                </span>
-                {isEditMode ? 'Update Exam' : 'Publish Exam'}
-              </>
-            )}
+            <span className="material-symbols-outlined text-xl">
+              {isEditMode ? 'save' : 'check_circle'}
+            </span>
+            {isEditMode ? 'Update Exam' : 'Publish Exam'}
           </button>
         </div>
       </div>
@@ -857,46 +735,3 @@ function QuestionFormModal({ examType, onClose, onAdd }) {
   );
 }
 
-// Loading Skeleton
-function PageSkeleton() {
-  return (
-    <div className="space-y-6">
-      {/* Header Skeleton */}
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="h-8 w-48 animate-pulse rounded-lg bg-hairline"></div>
-          <div className="mt-2 h-4 w-96 animate-pulse rounded bg-hairline"></div>
-        </div>
-        <div className="h-10 w-32 animate-pulse rounded-lg bg-hairline"></div>
-      </div>
-
-      {/* Type Selection Skeleton */}
-      <div className="rounded-lg bg-canvas p-6 shadow-sm">
-        <div className="mb-4 h-6 w-32 animate-pulse rounded bg-hairline"></div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="h-32 animate-pulse rounded-xl bg-hairline"></div>
-          <div className="h-32 animate-pulse rounded-xl bg-hairline"></div>
-        </div>
-      </div>
-
-      {/* Form Skeleton */}
-      <div className="rounded-lg bg-canvas p-6 shadow-sm">
-        <div className="mb-4 h-6 w-32 animate-pulse rounded bg-hairline"></div>
-        <div className="grid gap-6 md:grid-cols-2">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-20 animate-pulse rounded-lg bg-hairline"></div>
-          ))}
-        </div>
-      </div>
-
-      {/* Questions Skeleton */}
-      <div className="rounded-lg bg-canvas p-6 shadow-sm">
-        <div className="mb-4 flex items-center justify-between">
-          <div className="h-6 w-32 animate-pulse rounded bg-hairline"></div>
-          <div className="h-10 w-32 animate-pulse rounded-lg bg-hairline"></div>
-        </div>
-        <div className="h-48 animate-pulse rounded-lg bg-hairline"></div>
-      </div>
-    </div>
-  );
-}

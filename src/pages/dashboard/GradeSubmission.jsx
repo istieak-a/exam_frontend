@@ -1,61 +1,41 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getSubmissionById, gradeSubmission, getExamById } from '../../services/examService';
+import {
+  submissions as mockSubmissions,
+  examQuestions as mockExamQuestions,
+} from '../../data/mockData';
 
 export default function GradeSubmission() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [submission, setSubmission] = useState(null);
-  const [exam, setExam] = useState(null);
-  const [questions, setQuestions] = useState([]);
-  const [error, setError] = useState(null);
-  const [saveError, setSaveError] = useState(null);
-  
-  // Initialize grades state for CQ exams only
-  const [grades, setGrades] = useState([]);
 
-  useEffect(() => {
-    const fetchSubmission = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        
-        // Fetch submission
-        const data = await getSubmissionById(id);
-        setSubmission(data);
-        
-        // Fetch the exam to get questions
-        if (data.examId) {
-          const examData = await getExamById(data.examId, { includeQuestions: true });
-          setExam(examData);
-          
-          const examQuestionList = examData.questions || [];
-          setQuestions(examQuestionList);
-          
-          // Initialize grades for CQ exams
-          if (data.examType?.toLowerCase() !== 'mcq') {
-            setGrades(examQuestionList.map((q, index) => ({
-              questionId: q.id,
-              questionNumber: index + 1,
-              marks: data.questionGrades?.[q.id] || 0,
-              maxMarks: q.marks,
-            })));
-          }
-        }
-      } catch (err) {
-        console.error('Failed to fetch submission:', err);
-        setError('Submission not found');
-      } finally {
-        setIsLoading(false);
+  const rawSubmission = mockSubmissions.find((s) => s.id === id) || null;
+  const submission = rawSubmission
+    ? {
+        ...rawSubmission,
+        studentName: rawSubmission.student?.name,
+        studentId: rawSubmission.student?.id,
+        answers: rawSubmission.answers || {},
+        questionGrades: rawSubmission.questionGrades || {},
       }
-    };
+    : null;
 
-    fetchSubmission();
-  }, [id]);
+  const questions = submission?.examId ? mockExamQuestions[submission.examId] || [] : [];
+
+  const [grades, setGrades] = useState(() =>
+    submission && (submission.examType || '').toLowerCase() !== 'mcq'
+      ? questions.map((q, index) => ({
+          questionId: q.id,
+          questionNumber: index + 1,
+          marks: submission.questionGrades?.[q.id] || 0,
+          maxMarks: q.marks,
+        }))
+      : [],
+  );
+
+  const error = submission ? null : 'Submission not found';
 
   // Determine exam type from submission
   const examType = submission?.examType?.toLowerCase() || 'cq';
@@ -80,10 +60,6 @@ export default function GradeSubmission() {
     // For now, return a placeholder
     return 'N/A';
   };
-
-  if (isLoading) {
-    return <PageSkeleton />;
-  }
 
   if (error || !submission) {
     return (
@@ -157,36 +133,8 @@ export default function GradeSubmission() {
     return max > 0 ? ((total / max) * 100).toFixed(2) : 0;
   };
 
-  const handleSubmit = async () => {
-    setIsSaving(true);
-    setSaveError(null);
-    
-    try {
-      // Format grades for API submission - convert array to map of questionId -> marks
-      const questionGradesMap = {};
-      grades.forEach(g => {
-        questionGradesMap[g.questionId] = Math.round(g.marks); // Ensure integer marks
-      });
-      
-      const gradeData = {
-        questionGrades: questionGradesMap,
-      };
-      
-      await gradeSubmission(id, gradeData);
-      navigate('/dashboard/submissions');
-    } catch (err) {
-      console.error('Failed to save grades:', err);
-      
-      if (err.status === 403) {
-        setSaveError('You do not have permission to grade this submission.');
-      } else if (err.status === 400) {
-        setSaveError(err.message || 'Invalid grade data. Please check your input.');
-      } else {
-        setSaveError(err.message || 'Failed to save grades. Please try again.');
-      }
-    } finally {
-      setIsSaving(false);
-    }
+  const handleSubmit = () => {
+    navigate('/dashboard/submissions');
   };
 
   return (
@@ -220,34 +168,13 @@ export default function GradeSubmission() {
           </button>
           <button
             onClick={handleSubmit}
-            disabled={isSaving}
- 
-            className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-5 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active disabled:opacity-60"
+            className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-5 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active"
           >
-            <span className="material-symbols-outlined text-xl">
-              {isSaving ? 'hourglass_empty' : 'check_circle'}
-            </span>
-            {isSaving ? 'Saving...' : 'Save Grades'}
+            <span className="material-symbols-outlined text-xl">check_circle</span>
+            Save Grades
           </button>
         </div>
       </div>
-
-      {/* Error Message */}
-      {saveError && (
-        <div className="rounded-lg bg-error/10 border-2 border-error/25 p-4 flex items-start gap-3">
-          <span className="material-symbols-outlined text-[#8a3636]">error</span>
-          <div className="flex-1">
-            <p className="text-sm font-medium text-red-900">Error Saving Grades</p>
-            <p className="text-sm text-[#8a3636] mt-1">{saveError}</p>
-          </div>
-          <button
-            onClick={() => setSaveError(null)}
-            className="text-error hover:text-[#8a3636]"
-          >
-            <span className="material-symbols-outlined">close</span>
-          </button>
-        </div>
-      )}
 
       {/* Student & Exam Info */}
       <div className="rounded-lg bg-canvas p-6 shadow-sm border border-hairline">
@@ -423,48 +350,12 @@ export default function GradeSubmission() {
         </button>
         <button
           onClick={handleSubmit}
-          disabled={isSaving}
- 
-          className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-6 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active disabled:opacity-60"
+          className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-6 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active"
         >
-          {isSaving ? 'Saving...' : 'Save Grades'}
+          Save Grades
         </button>
       </div>
     </div>
   );
 }
 
-// Loading Skeleton
-function PageSkeleton() {
-  return (
-    <div className="space-y-6">
-      {/* Header Skeleton */}
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 animate-pulse rounded-lg bg-hairline"></div>
-          <div>
-            <div className="h-8 w-96 animate-pulse rounded-lg bg-hairline"></div>
-            <div className="mt-2 h-4 w-80 animate-pulse rounded bg-hairline"></div>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <div className="h-10 w-24 animate-pulse rounded-lg bg-hairline"></div>
-          <div className="h-10 w-32 animate-pulse rounded-lg bg-hairline"></div>
-        </div>
-      </div>
-
-      {/* Info Skeleton */}
-      <div className="h-48 animate-pulse rounded-lg bg-hairline"></div>
-
-      {/* Score Skeleton */}
-      <div className="h-32 animate-pulse rounded-lg bg-hairline"></div>
-
-      {/* Questions Skeleton */}
-      <div className="space-y-4">
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="h-64 animate-pulse rounded-lg bg-hairline"></div>
-        ))}
-      </div>
-    </div>
-  );
-}

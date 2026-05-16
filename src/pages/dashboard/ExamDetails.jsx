@@ -1,72 +1,34 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { getExamById, deleteExam, updateExam } from '../../services/examService';
+import {
+  teacherExams as mockTeacherExams,
+  availableExams as mockAvailableExams,
+  examQuestions as mockExamQuestions,
+} from '../../data/mockData';
 
 export default function ExamDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(true);
-  const [exam, setExam] = useState(null);
-  const [questions, setQuestions] = useState([]);
-  const [activeTab, setActiveTab] = useState('overview'); // 'overview' or 'questions'
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [isPublishing, setIsPublishing] = useState(false);
 
-  useEffect(() => {
-    const fetchExam = async () => {
-      try {
-        setIsLoading(true);
-        const response = await getExamById(id, { includeQuestions: true, includeStats: true });
-        
-        // Handle both direct response and wrapped response
-        const examData = response?.data || response;
-        setExam(examData);
-        setQuestions(examData?.questions || []);
-      } catch (err) {
-        console.error('Failed to fetch exam:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const exam =
+    mockTeacherExams.find((e) => e.id === id) ||
+    mockAvailableExams.find((e) => e.id === id) ||
+    null;
+  const questions = mockExamQuestions[id] || [];
+  const [activeTab, setActiveTab] = useState('overview');
 
-    fetchExam();
-  }, [id]);
-
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!window.confirm('Are you sure you want to delete this exam? This action cannot be undone.')) {
       return;
     }
-    
-    try {
-      setIsDeleting(true);
-      await deleteExam(id);
-      navigate('/dashboard/exams');
-    } catch (err) {
-      console.error('Failed to delete exam:', err);
-      alert('Failed to delete exam. Please try again.');
-    } finally {
-      setIsDeleting(false);
-    }
+    navigate('/dashboard/exams');
   };
 
-  const handlePublish = async () => {
-    try {
-      setIsPublishing(true);
-      await updateExam(id, { ...exam, status: 'PUBLISHED' });
-      setExam(prev => ({ ...prev, status: 'published' }));
-    } catch (err) {
-      console.error('Failed to publish exam:', err);
-      alert('Failed to publish exam. Please try again.');
-    } finally {
-      setIsPublishing(false);
-    }
+  const handlePublish = () => {
+    navigate('/dashboard/exams');
   };
-
-  if (isLoading) {
-    return <PageSkeleton />;
-  }
 
   if (!exam) {
     return (
@@ -161,14 +123,10 @@ export default function ExamDetails() {
           {examStatus === 'draft' && (
             <button
               onClick={handlePublish}
-              disabled={isPublishing}
- 
-              className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active disabled:opacity-60"
+              className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active"
             >
-              <span className="material-symbols-outlined text-lg">
-                {isPublishing ? 'hourglass_empty' : 'publish'}
-              </span>
-              {isPublishing ? 'Publishing...' : 'Publish'}
+              <span className="material-symbols-outlined text-lg">publish</span>
+              Publish
             </button>
           )}
           <button
@@ -182,13 +140,10 @@ export default function ExamDetails() {
           </button>
           <button
             onClick={handleDelete}
-            disabled={isDeleting}
-            className="flex items-center gap-2 rounded-lg border border-error/25 px-4 py-2 text-sm font-medium text-[#8a3636] transition-colors hover:bg-error/10 disabled:opacity-50"
+            className="flex items-center gap-2 rounded-lg border border-error/25 px-4 py-2 text-sm font-medium text-[#8a3636] transition-colors hover:bg-error/10"
           >
-            <span className="material-symbols-outlined text-lg">
-              {isDeleting ? 'hourglass_empty' : 'delete'}
-            </span>
-            {isDeleting ? 'Deleting...' : 'Delete'}
+            <span className="material-symbols-outlined text-lg">delete</span>
+            Delete
           </button>
         </div>
       </div>
@@ -298,6 +253,8 @@ function InfoItem({ icon, label, value }) {
 // QuestionCard Component
 function QuestionCard({ question, index }) {
   const [expanded, setExpanded] = useState(false);
+  const type = (question.type || '').toLowerCase();
+  const isMcq = type === 'mcq';
 
   return (
     <div className="overflow-hidden rounded-xl border border-hairline bg-canvas shadow-sm">
@@ -305,18 +262,18 @@ function QuestionCard({ question, index }) {
         <div className="flex items-center gap-3 flex-1">
           <div
             className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-medium text-on-primary"
- 
+
           >
             {index + 1}
           </div>
           <div className="flex-1">
-            <p className="font-medium text-ink">{question.question}</p>
+            <p className="font-medium text-ink">{question.questionText || question.question || question.text}</p>
             <div className="mt-1 flex items-center gap-3 text-xs text-muted">
               <span className="flex items-center gap-1">
                 <span className="material-symbols-outlined text-sm">
-                  {question.type === 'mcq' ? 'radio_button_checked' : 'edit_note'}
+                  {isMcq ? 'radio_button_checked' : 'edit_note'}
                 </span>
-                {question.type === 'mcq' ? 'MCQ' : 'Short Answer'}
+                {isMcq ? 'MCQ' : 'Short Answer'}
               </span>
               <span className="flex items-center gap-1">
                 <span className="material-symbols-outlined text-sm">military_tech</span>
@@ -325,7 +282,7 @@ function QuestionCard({ question, index }) {
             </div>
           </div>
         </div>
-        {question.type === 'mcq' && (
+        {isMcq && (
           <button
             onClick={() => setExpanded(!expanded)}
             className="rounded-lg p-2 text-body transition-colors hover:bg-surface-card"
@@ -337,7 +294,7 @@ function QuestionCard({ question, index }) {
         )}
       </div>
 
-      {expanded && question.type === 'mcq' && (
+      {expanded && isMcq && (
         <div className="border-t border-hairline bg-surface-soft p-4">
           <div className="space-y-2">
             {question.options.map((option, idx) => (
@@ -368,30 +325,3 @@ function QuestionCard({ question, index }) {
   );
 }
 
-// Loading Skeleton
-function PageSkeleton() {
-  return (
-    <div className="space-y-6">
-      {/* Header Skeleton */}
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 animate-pulse rounded-lg bg-hairline"></div>
-          <div>
-            <div className="h-8 w-96 animate-pulse rounded-lg bg-hairline"></div>
-            <div className="mt-2 h-4 w-48 animate-pulse rounded bg-hairline"></div>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <div className="h-10 w-24 animate-pulse rounded-lg bg-hairline"></div>
-          <div className="h-10 w-20 animate-pulse rounded-lg bg-hairline"></div>
-        </div>
-      </div>
-
-      {/* Tabs Skeleton */}
-      <div className="h-12 animate-pulse rounded-lg bg-hairline"></div>
-
-      {/* Content Skeleton */}
-      <div className="h-96 animate-pulse rounded-lg bg-hairline"></div>
-    </div>
-  );
-}

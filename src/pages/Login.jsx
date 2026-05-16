@@ -10,9 +10,9 @@ function Login() {
     email: '',
     password: '',
     rememberMe: false,
+    role: 'TEACHER',
   });
   const [errors, setErrors] = useState({});
-  const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -33,20 +33,11 @@ function Login() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     if (!validateForm()) return;
-    setIsLoading(true);
-    try {
-      await login(formData.email, formData.password);
-      navigate('/dashboard');
-    } catch (error) {
-      console.error('Login failed:', error);
-      const errorMessage = error.message || 'Login failed. Please check your credentials.';
-      setErrors({ general: errorMessage });
-    } finally {
-      setIsLoading(false);
-    }
+    login(formData.email, formData.password, formData.role);
+    navigate('/dashboard');
   };
 
   const handleSocialLogin = (provider) => {
@@ -73,27 +64,30 @@ function Login() {
             </p>
           </div>
 
-          {errors.general && (
-            <div className="mb-6 rounded-md border border-error/30 bg-error/10 p-3.5">
-              <div className="flex items-start gap-3">
-                <svg className="mt-0.5 h-4 w-4 text-error" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
-                <p className="flex-1 text-xs text-[#8a3636]">{errors.general}</p>
-                <button
-                  type="button"
-                  onClick={() => setErrors({ ...errors, general: '' })}
-                  className="text-error/70 hover:text-error"
-                >
-                  <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                  </svg>
-                </button>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-ink">Sign in as</label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { value: 'TEACHER', label: 'Teacher' },
+                  { value: 'STUDENT', label: 'Student' },
+                ].map((role) => (
+                  <button
+                    key={role.value}
+                    type="button"
+                    onClick={() => setFormData((prev) => ({ ...prev, role: role.value }))}
+                    className={`h-10 rounded-md border text-sm font-medium transition-colors ${
+                      formData.role === role.value
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-hairline bg-canvas text-body hover:bg-surface-soft'
+                    }`}
+                  >
+                    {role.label}
+                  </button>
+                ))}
               </div>
             </div>
-          )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
             <Input
               label="Email"
               type="email"
@@ -130,18 +124,8 @@ function Login() {
               </Link>
             </div>
 
-            <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <svg className="-ml-1 mr-2 h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Signing in…
-                </>
-              ) : (
-                'Sign in'
-              )}
+            <Button type="submit" className="w-full" size="lg">
+              Sign in
             </Button>
           </form>
 

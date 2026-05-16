@@ -5,8 +5,7 @@ import { Badge, Button, Input } from '../../components/ui';
 import { useAuth } from '../../context/AuthContext';
 
 export default function Profile() {
-  const { user, refreshSession } = useAuth();
-  const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -26,32 +25,14 @@ export default function Profile() {
     }
   }, [user]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 400);
-    return () => clearTimeout(timer);
-  }, []);
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSave = async (e) => {
+  const handleSave = (e) => {
     e.preventDefault();
-    try {
-      setIsLoading(true);
-      const { updateProfile } = await import('../../services/authService');
-      await updateProfile({
-        fullName: formData.fullName,
-        email: formData.email,
-      });
-      await refreshSession();
-      setIsEditing(false);
-    } catch (error) {
-      console.error('Failed to update profile:', error);
-    } finally {
-      setIsLoading(false);
-    }
+    setIsEditing(false);
   };
 
   const getInitials = (name) =>
@@ -71,9 +52,7 @@ export default function Profile() {
     });
   };
 
-  if (isLoading) return <PageSkeleton />;
-
-  const isTeacher = user?.role === 'teacher';
+  const isTeacher = user?.role === 'TEACHER' || user?.role === 'teacher';
 
   return (
     <div className="space-y-8">
@@ -237,7 +216,6 @@ function ChangePasswordModal({ onClose }) {
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -245,7 +223,7 @@ function ChangePasswordModal({ onClose }) {
     setError('');
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       setError('New passwords do not match');
@@ -256,22 +234,13 @@ function ChangePasswordModal({ onClose }) {
       return;
     }
 
-    try {
-      setIsLoading(true);
-      setError('');
-      const { changePassword } = await import('../../services/authService');
-      await changePassword(passwordData.currentPassword, passwordData.newPassword);
-      setSuccess('Password updated.');
-      setTimeout(() => {
-        onClose();
-        setSuccess('');
-        setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-      }, 1400);
-    } catch (err) {
-      setError(err.message || 'Failed to change password');
-    } finally {
-      setIsLoading(false);
-    }
+    setError('');
+    setSuccess('Password updated.');
+    setTimeout(() => {
+      onClose();
+      setSuccess('');
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    }, 1400);
   };
 
   return (
@@ -330,9 +299,7 @@ function ChangePasswordModal({ onClose }) {
             <Button type="button" variant="ghost" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? 'Saving…' : 'Update password'}
-            </Button>
+            <Button type="submit">Update password</Button>
           </div>
         </form>
       </div>
@@ -340,21 +307,3 @@ function ChangePasswordModal({ onClose }) {
   );
 }
 
-function PageSkeleton() {
-  return (
-    <div className="space-y-8">
-      <div className="space-y-2 border-b border-hairline pb-6">
-        <div className="h-3 w-20 animate-pulse rounded bg-hairline" />
-        <div className="h-10 w-48 animate-pulse rounded bg-hairline" />
-        <div className="h-3 w-64 animate-pulse rounded bg-hairline" />
-      </div>
-      <div className="grid gap-8 lg:grid-cols-3">
-        <div className="h-[360px] animate-pulse rounded-lg bg-hairline" />
-        <div className="space-y-6 lg:col-span-2">
-          <div className="h-[360px] animate-pulse rounded-lg bg-hairline" />
-          <div className="h-[120px] animate-pulse rounded-lg bg-hairline" />
-        </div>
-      </div>
-    </div>
-  );
-}

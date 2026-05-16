@@ -1,17 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ExamCard,
-  ExamCardSkeleton,
   QuickActionCard,
-  QuickActionCardSkeleton,
   StatCard,
-  StatCardSkeleton,
 } from '../../components/dashboard';
 import { useAuth } from '../../context/AuthContext';
-import { getAllSubmissions, getTeacherExams } from '../../services/examService';
+import {
+  submissions as mockSubmissions,
+  teacherActivity,
+  teacherExams as mockTeacherExams,
+} from '../../data/mockData';
 
 function ActivityItem({ activity }) {
   return (
@@ -29,67 +29,24 @@ function ActivityItem({ activity }) {
 
 export default function TeacherDashboard() {
   const { user } = useAuth();
-  const [isLoading, setIsLoading] = useState(true);
-  const [exams, setExams] = useState([]);
-  const [stats, setStats] = useState({
-    totalExams: 0,
-    activeExams: 0,
-    pendingSubmissions: 0,
-    averageScore: 0,
-  });
-  const [activity] = useState([]);
+  const exams = mockTeacherExams;
+  const activity = teacherActivity;
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
-        const [examsData, submissionsData] = await Promise.all([
-          getTeacherExams(),
-          getAllSubmissions(),
-        ]);
+  const activeCount = exams.filter((e) => (e.status || '').toLowerCase() === 'active').length;
+  const pendingCount = mockSubmissions.filter(
+    (s) => s.status === 'pending' || s.status === 'in-review',
+  ).length;
+  const gradedSubmissions = mockSubmissions.filter((s) => s.totalScore !== undefined);
+  const avgScore = gradedSubmissions.length
+    ? gradedSubmissions.reduce((sum, s) => sum + (s.percentage || 0), 0) / gradedSubmissions.length
+    : 0;
 
-        const examsList = Array.isArray(examsData) ? examsData : examsData.content || [];
-        setExams(examsList);
-
-        const activeCount = examsList.filter(
-          (e) => (e.status || '').toLowerCase() === 'active',
-        ).length;
-
-        setStats((prev) => ({
-          ...prev,
-          totalExams: examsList.length,
-          activeExams: activeCount,
-        }));
-
-        const submissionsList = Array.isArray(submissionsData)
-          ? submissionsData
-          : submissionsData.content || [];
-        const pendingCount = submissionsList.filter(
-          (s) => s.status === 'pending' || s.status === 'in-review',
-        ).length;
-        const gradedSubmissions = submissionsList.filter((s) => s.totalScore !== undefined);
-        const avgScore =
-          gradedSubmissions.length > 0
-            ? gradedSubmissions.reduce((sum, s) => sum + (s.percentage || 0), 0) /
-              gradedSubmissions.length
-            : 0;
-
-        setStats((prev) => ({
-          ...prev,
-          pendingSubmissions: pendingCount,
-          averageScore: avgScore.toFixed(1),
-        }));
-      } catch (err) {
-        console.error('Failed to fetch dashboard data:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  if (isLoading) return <DashboardSkeleton />;
+  const stats = {
+    totalExams: exams.length,
+    activeExams: activeCount,
+    pendingSubmissions: pendingCount,
+    averageScore: avgScore.toFixed(1),
+  };
 
   const firstName = user?.name?.split(' ')[0] || 'professor';
 
@@ -232,39 +189,3 @@ export default function TeacherDashboard() {
   );
 }
 
-function DashboardSkeleton() {
-  return (
-    <div className="space-y-10">
-      <div className="space-y-3 border-b border-hairline pb-8">
-        <div className="h-3 w-24 animate-pulse rounded bg-hairline" />
-        <div className="h-12 w-72 animate-pulse rounded bg-hairline" />
-        <div className="h-4 w-1/2 animate-pulse rounded bg-hairline" />
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[...Array(4)].map((_, i) => (
-          <StatCardSkeleton key={i} />
-        ))}
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[...Array(4)].map((_, i) => (
-          <QuickActionCardSkeleton key={i} />
-        ))}
-      </div>
-
-      <div className="grid gap-8 lg:grid-cols-3">
-        <div className="space-y-4 lg:col-span-2">
-          <div className="h-6 w-40 animate-pulse rounded bg-hairline" />
-          {[...Array(3)].map((_, i) => (
-            <ExamCardSkeleton key={i} />
-          ))}
-        </div>
-        <div>
-          <div className="mb-4 h-6 w-32 animate-pulse rounded bg-hairline" />
-          <div className="h-72 animate-pulse rounded-lg bg-hairline" />
-        </div>
-      </div>
-    </div>
-  );
-}

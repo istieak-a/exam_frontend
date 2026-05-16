@@ -1,17 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ExamCard,
-  ExamCardSkeleton,
   QuickActionCard,
-  QuickActionCardSkeleton,
   StatCard,
-  StatCardSkeleton,
 } from '../../components/dashboard';
 import { useAuth } from '../../context/AuthContext';
-import { getAvailableExams, getMySubmissions } from '../../services/examService';
+import {
+  availableExams as mockAvailableExams,
+  completedExams as mockCompletedExams,
+} from '../../data/mockData';
 
 function UpcomingExamItem({ exam }) {
   const formatDate = (exam) => {
@@ -67,67 +66,35 @@ function UpcomingExamItem({ exam }) {
 
 export default function StudentDashboard() {
   const { user } = useAuth();
-  const [isLoading, setIsLoading] = useState(true);
-  const [availableExams, setAvailableExams] = useState([]);
-  const [stats, setStats] = useState({
-    availableExams: 0,
-    completedExams: 0,
-    averageScore: 0,
-    pendingResults: 0,
-  });
+  const availableExams = mockAvailableExams;
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
-        const [examsData, submissionsData] = await Promise.all([
-          getAvailableExams(),
-          getMySubmissions(),
-        ]);
+  const completedCount = mockCompletedExams.filter(
+    (s) => s.status === 'graded' || s.status === 'completed',
+  ).length;
+  const pendingCount = mockCompletedExams.filter(
+    (s) => s.status === 'pending' || s.status === 'in-review',
+  ).length;
+  const gradedSubmissions = mockCompletedExams.filter((s) => s.score != null);
+  const avgScore = gradedSubmissions.length
+    ? gradedSubmissions.reduce(
+        (sum, s) => sum + (s.totalMarks ? (s.score / s.totalMarks) * 100 : 0),
+        0,
+      ) / gradedSubmissions.length
+    : 0;
 
-        const examsArray = Array.isArray(examsData) ? examsData : examsData?.content || [];
-        setAvailableExams(examsArray);
+  const stats = {
+    availableExams: availableExams.length,
+    completedExams: completedCount,
+    averageScore: avgScore.toFixed(1),
+    pendingResults: pendingCount,
+  };
 
-        const submissionsArray = Array.isArray(submissionsData) ? submissionsData : [];
-
-        const completedCount = submissionsArray.filter(
-          (s) => s.status === 'graded' || s.status === 'completed',
-        ).length;
-        const pendingCount = submissionsArray.filter(
-          (s) => s.status === 'pending' || s.status === 'in-review',
-        ).length;
-        const gradedSubmissions = submissionsArray.filter((s) => s.totalScore !== undefined);
-        const avgScore =
-          gradedSubmissions.length > 0
-            ? gradedSubmissions.reduce((sum, s) => sum + (s.percentage || 0), 0) /
-              gradedSubmissions.length
-            : 0;
-
-        setStats({
-          availableExams: examsArray.length,
-          completedExams: completedCount,
-          averageScore: avgScore.toFixed(1),
-          pendingResults: pendingCount,
-        });
-      } catch (err) {
-        console.error('Failed to fetch dashboard data:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  const examsArray = Array.isArray(availableExams) ? availableExams : [];
-  const upcomingExams = examsArray
+  const upcomingExams = availableExams
     .filter((exam) => {
       const status = (exam.status || '').toLowerCase();
       return status === 'published' || (status === 'active' && exam.startDateTime > Date.now());
     })
     .slice(0, 3);
-
-  if (isLoading) return <DashboardSkeleton />;
 
   const firstName = user?.name?.split(' ')[0] || 'there';
 
@@ -267,39 +234,3 @@ export default function StudentDashboard() {
   );
 }
 
-function DashboardSkeleton() {
-  return (
-    <div className="space-y-10">
-      <div className="space-y-3 border-b border-hairline pb-8">
-        <div className="h-3 w-24 animate-pulse rounded bg-hairline" />
-        <div className="h-12 w-72 animate-pulse rounded bg-hairline" />
-        <div className="h-4 w-1/2 animate-pulse rounded bg-hairline" />
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[...Array(4)].map((_, i) => (
-          <StatCardSkeleton key={i} />
-        ))}
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[...Array(4)].map((_, i) => (
-          <QuickActionCardSkeleton key={i} />
-        ))}
-      </div>
-
-      <div className="grid gap-8 lg:grid-cols-3">
-        <div className="space-y-4 lg:col-span-2">
-          <div className="h-6 w-40 animate-pulse rounded bg-hairline" />
-          {[...Array(3)].map((_, i) => (
-            <ExamCardSkeleton key={i} />
-          ))}
-        </div>
-        <div>
-          <div className="mb-4 h-6 w-32 animate-pulse rounded bg-hairline" />
-          <div className="h-72 animate-pulse rounded-lg bg-hairline" />
-        </div>
-      </div>
-    </div>
-  );
-}

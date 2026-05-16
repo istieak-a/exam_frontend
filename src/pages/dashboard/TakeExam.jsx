@@ -2,9 +2,12 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getExamById, submitExam, parseExamResponse } from '../../services/examService';
+import {
+  availableExams as mockAvailableExams,
+  examQuestions as mockExamQuestions,
+} from '../../data/mockData';
 
-// Default exam instructions when none provided by backend
+// Default exam instructions when none provided
 const defaultInstructions = [
   'Read all questions carefully before answering',
   'Each question carries the marks shown',
@@ -16,61 +19,25 @@ const defaultInstructions = [
 export default function TakeExam() {
   const { id: examId } = useParams();
   const navigate = useNavigate();
-  
-  // State for exam data
-  const [exam, setExam] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-  
+
+  const baseExam = mockAvailableExams.find((e) => e.id === examId) || null;
+  const exam = baseExam
+    ? { ...baseExam, questions: mockExamQuestions[examId] || [] }
+    : null;
+  const error = !exam ? 'Exam not found' : null;
+
   // State for exam taking
   const [showInstructions, setShowInstructions] = useState(true);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState({});
-  const [timeRemaining, setTimeRemaining] = useState(0);
+  const [timeRemaining, setTimeRemaining] = useState(
+    (exam?.duration || exam?.durationMinutes || 60) * 60,
+  );
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Fetch exam data on component mount
-  useEffect(() => {
-    const fetchExam = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        
-        const examData = await getExamById(examId, { includeQuestions: true });
-        const parsedExam = parseExamResponse(examData);
-        
-        if (!parsedExam) {
-          throw new Error('Exam not found');
-        }
-        
-        // Check if exam is available to take
-        if (parsedExam.status !== 'active' && parsedExam.status !== 'published') {
-          throw new Error('This exam is not currently available');
-        }
-        
-        setExam(parsedExam);
-        setTimeRemaining((parsedExam.duration || 60) * 60); // Convert minutes to seconds
-        
-      } catch (err) {
-        console.error('Failed to fetch exam:', err);
-        setError(err.message || 'Failed to load exam');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (examId) {
-      fetchExam();
-    } else {
-      setError('No exam ID provided');
-      setIsLoading(false);
-    }
-  }, [examId]);
 
   // Countdown timer
   useEffect(() => {
-    if (showInstructions || isLoading || !exam) return;
+    if (showInstructions || !exam) return;
 
     const interval = setInterval(() => {
       setTimeRemaining((prev) => {
@@ -83,7 +50,7 @@ export default function TakeExam() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [showInstructions, isLoading, exam]);
+  }, [showInstructions, exam]);
 
   // Format exam questions for component use
   const formattedQuestions = exam?.questions?.map((q, index) => ({
@@ -132,38 +99,14 @@ export default function TakeExam() {
     setCurrentQuestionIndex(index);
   };
 
+  const handleSubmit = useCallback(() => {
+    setShowSubmitConfirm(false);
+    navigate(`/dashboard/exam-result/${examId}?type=${exam?.examType?.toLowerCase() || 'mcq'}`);
+  }, [exam, examId, navigate]);
+
   const handleAutoSubmit = useCallback(() => {
-    console.log('Time up! Auto-submitting exam...', answers);
     handleSubmit();
-  }, [answers, examId]);
-
-  const handleSubmit = async () => {
-    try {
-      setIsSubmitting(true);
-      setShowSubmitConfirm(false);
-      
-      // Format answers for submission - backend expects just Map<String, String>
-      const formattedAnswers = {};
-      Object.entries(answers).forEach(([questionId, answer]) => {
-        // Ensure answer is a string
-        formattedAnswers[questionId] = String(answer || '');
-      });
-
-      console.log('Submitting exam answers...', formattedAnswers);
-      
-      // Submit to backend - just send the answers map
-      await submitExam(examId, formattedAnswers);
-      
-      // Navigate to result page
-      navigate(`/dashboard/exam-result/${examId}?type=${exam.examType?.toLowerCase() || 'mcq'}`);
-      
-    } catch (err) {
-      console.error('Failed to submit exam:', err);
-      setError('Failed to submit exam. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  }, [handleSubmit]);
 
   const getQuestionStatus = (questionId) => {
     if (answers[questionId]) {
@@ -175,18 +118,6 @@ export default function TakeExam() {
   const getAnsweredCount = () => {
     return Object.keys(answers).length;
   };
-
-  // Loading state
-  if (isLoading) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="text-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent mx-auto mb-4"></div>
-          <p className="text-body">Loading exam...</p>
-        </div>
-      </div>
-    );
-  }
 
   // Error state
   if (error || !exam) {
@@ -322,10 +253,9 @@ export default function TakeExam() {
             </div>
             <button
               onClick={() => setShowSubmitConfirm(true)}
-              disabled={isSubmitting}
-              className="rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active disabled:opacity-50"
+              className="rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active"
             >
-              {isSubmitting ? 'Submitting...' : 'Submit Exam'}
+              Submit Exam
             </button>
           </div>
         </div>
@@ -430,10 +360,9 @@ export default function TakeExam() {
               {currentQuestionIndex === formattedQuestions.length - 1 ? (
                 <button
                   onClick={() => setShowSubmitConfirm(true)}
-                  disabled={isSubmitting}
-                  className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active"
                 >
-                  {isSubmitting ? 'Submitting...' : 'Submit Exam'}
+                  Submit Exam
                   <span className="material-symbols-outlined">check</span>
                 </button>
               ) : (
@@ -513,17 +442,15 @@ export default function TakeExam() {
             <div className="mt-6 flex gap-3">
               <button
                 onClick={() => setShowSubmitConfirm(false)}
-                disabled={isSubmitting}
-                className="flex-1 rounded-lg bg-surface-card px-4 py-2.5 text-sm font-medium text-body-strong transition-colors hover:bg-hairline disabled:opacity-50"
+                className="flex-1 rounded-lg bg-surface-card px-4 py-2.5 text-sm font-medium text-body-strong transition-colors hover:bg-hairline"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSubmit}
-                disabled={isSubmitting}
-                className="inline-flex h-10 flex-1 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active disabled:opacity-60"
+                className="inline-flex h-10 flex-1 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active"
               >
-                {isSubmitting ? 'Submitting...' : 'Submit'}
+                Submit
               </button>
             </div>
           </div>

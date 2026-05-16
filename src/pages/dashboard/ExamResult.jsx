@@ -1,8 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { getMySubmissionForExam, getExamById, parseExamResponse } from '../../services/examService';
+import { useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import {
+  completedExams as mockCompletedExams,
+  availableExams as mockAvailableExams,
+  examQuestions as mockExamQuestions,
+} from '../../data/mockData';
 
 // Mock exam result data - two types
 const mockResults = {
@@ -454,87 +458,99 @@ const mockResults = {
   },
 };
 
-const getResultData = (examId, type) => {
-  // Map specific exam IDs to their results
-  if (mockResults[examId]) {
-    return mockResults[examId];
-  }
-  // Fallback based on type
-  return type === 'short' ? mockResults['exam-104'] : mockResults.mcq;
+const buildSubmissionFromCompletedExam = (id) => {
+  const completed = mockCompletedExams.find((c) => c.id === id);
+  if (!completed) return null;
+
+  const questions = mockExamQuestions[id] || [];
+  const answers = {};
+  const questionGrades = {};
+  questions.forEach((q) => {
+    const qid = q.id ?? `q-${q.questionOrder ?? 0}`;
+    if ((q.type || '').toUpperCase() === 'MCQ' && Array.isArray(q.options)) {
+      answers[qid] = q.options[q.correctAnswer] ?? '';
+      questionGrades[qid] = q.marks;
+    } else {
+      answers[qid] = 'Mock answer for demo purposes — written response would appear here.';
+      questionGrades[qid] = Math.round((q.marks || 0) * 0.8);
+    }
+  });
+
+  const totalScore = completed.score ?? null;
+  const maxScore = completed.totalMarks ?? null;
+  const percentage = totalScore != null && maxScore
+    ? Math.round((totalScore / maxScore) * 100)
+    : null;
+
+  return {
+    id: `mock-${id}`,
+    examId: id,
+    examTitle: completed.title,
+    examType: completed.examType,
+    status: completed.status,
+    totalScore,
+    maxScore,
+    percentage,
+    submittedAt: completed.completedAt,
+    answers,
+    questionGrades,
+  };
+};
+
+const buildExamFromMock = (id) => {
+  const base =
+    mockCompletedExams.find((c) => c.id === id) ||
+    mockAvailableExams.find((a) => a.id === id);
+  if (!base) return null;
+  return {
+    ...base,
+    duration: base.duration ?? base.durationMinutes ?? null,
+    questions: mockExamQuestions[id] || [],
+  };
 };
 
 export default function ExamResult() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  
-  // State for real data
-  const [submission, setSubmission] = useState(null);
-  const [exam, setExam] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [showAnswers, setShowAnswers] = useState(true);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        
-        // First try to fetch submission for this exam
-        const submissionData = await getMySubmissionForExam(id);
-        setSubmission(submissionData);
-        
-        // Then try to fetch exam details
-        try {
-          const examData = await getExamById(id, { includeQuestions: true });
-          if (examData) {
-            setExam(parseExamResponse(examData));
-          }
-        } catch (examErr) {
-          console.warn('Could not fetch exam details:', examErr);
-          // Don't fail if we can't get exam details, we have submission data
-        }
-        
-      } catch (err) {
-        console.error('Failed to fetch exam result data:', err);
-        setError(err.message || 'Failed to load exam results');
-      } finally {
-        setIsLoading(false);
+  const submission = mockResults[id]
+    ? {
+        id: `mock-${id}`,
+        examId: id,
+        examTitle: mockResults[id].examTitle,
+        examType: mockResults[id].type === 'short' ? 'CQ' : 'MCQ',
+        status: mockResults[id].status === 'pending' ? 'pending' : 'graded',
+        totalScore: mockResults[id].obtainedMarks,
+        maxScore: mockResults[id].totalMarks,
+        percentage: mockResults[id].percentage,
+        submittedAt: mockResults[id].submittedAt,
+        answers: Object.fromEntries(
+          mockResults[id].questions.map((q) => [q.id, q.userAnswer]),
+        ),
+        questionGrades: Object.fromEntries(
+          mockResults[id].questions.map((q) => [q.id, q.obtainedMarks]),
+        ),
       }
-    };
+    : buildSubmissionFromCompletedExam(id);
 
-    fetchData();
-  }, [id]);
+  const exam = mockResults[id]
+    ? {
+        title: mockResults[id].examTitle,
+        course: mockResults[id].subject,
+        examType: mockResults[id].type === 'short' ? 'CQ' : 'MCQ',
+        totalMarks: mockResults[id].totalMarks,
+        duration: mockResults[id].duration,
+        questions: mockResults[id].questions.map((q) => ({
+          id: q.id,
+          questionText: q.question,
+          type: mockResults[id].type === 'short' ? 'CQ' : 'MCQ',
+          marks: q.marks,
+          options: q.options?.map((o) => o.text) || [],
+          correctAnswer: q.options?.find((o) => o.id === q.correctAnswer)?.text,
+        })),
+      }
+    : buildExamFromMock(id);
 
-  if (isLoading) {
-    return <PageSkeleton />;
-  }
-
-  // Handle errors
-  if (error) {
-    return (
-      <div className="rounded-lg bg-canvas p-8 border border-hairline text-center">
-        <span className="material-symbols-outlined mx-auto text-6xl text-red-300">error</span>
-        <h3 className="mt-4 font-display text-[20px] leading-tight tracking-[-0.015em] text-ink">Error Loading Results</h3>
-        <p className="mt-2 text-sm text-body">{error}</p>
-        <div className="mt-4 flex gap-3 justify-center">
-          <button
-            onClick={() => navigate('/dashboard/my-exams')}
-            className="rounded-lg bg-surface-card px-4 py-2 text-sm font-medium text-body-strong transition-colors hover:bg-hairline"
-          >
-            Back to My Exams
-          </button>
-          <button
-            onClick={() => window.location.reload()}
-            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active"
-          >
-            Try Again
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const [showAnswers, setShowAnswers] = useState(true);
 
   // Handle case when no submission is found
   if (!submission) {
@@ -888,11 +904,3 @@ export default function ExamResult() {
   );
 }
 
-function PageSkeleton() {
-  return (
-    <div className="space-y-6">
-      <div className="h-96 animate-pulse rounded-lg bg-hairline" />
-      <div className="h-48 animate-pulse rounded-lg bg-hairline" />
-    </div>
-  );
-}

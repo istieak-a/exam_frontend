@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Badge } from '../../components/ui';
 import { StatCard } from '../../components/dashboard';
-import { getTeacherExams } from '../../services/examService';
+import { teacherExams as mockTeacherExams } from '../../data/mockData';
 
 const statusBadge = {
   draft: 'pill',
@@ -21,27 +21,9 @@ const difficultyTone = {
 };
 
 export default function ExamList() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [exams, setExams] = useState([]);
+  const [exams] = useState(mockTeacherExams);
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-
-  useEffect(() => {
-    const fetchExams = async () => {
-      try {
-        setIsLoading(true);
-        const data = await getTeacherExams();
-        const examsList = Array.isArray(data) ? data : data?.content || [];
-        setExams(examsList);
-      } catch (err) {
-        console.error('Failed to fetch exams:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchExams();
-  }, []);
 
   const filteredExams = exams.filter((exam) => {
     const status = (exam.status || '').toLowerCase();
@@ -60,8 +42,6 @@ export default function ExamList() {
     completed: exams.filter((e) => e.status?.toLowerCase() === 'completed').length,
     archived: exams.filter((e) => e.status?.toLowerCase() === 'archived').length,
   };
-
-  if (isLoading) return <PageSkeleton />;
 
   const tabs = [
     { id: 'all', label: 'All', count: stats.all },
@@ -277,27 +257,3 @@ function TeacherExamRow({ exam }) {
   );
 }
 
-function PageSkeleton() {
-  return (
-    <div className="space-y-8">
-      <div className="flex items-end justify-between border-b border-hairline pb-6">
-        <div className="space-y-2">
-          <div className="h-3 w-20 animate-pulse rounded bg-hairline" />
-          <div className="h-10 w-64 animate-pulse rounded bg-hairline" />
-        </div>
-        <div className="h-10 w-32 animate-pulse rounded-md bg-hairline" />
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[...Array(4)].map((_, i) => (
-          <div key={i} className="h-28 animate-pulse rounded-lg bg-hairline" />
-        ))}
-      </div>
-      <div className="h-12 animate-pulse rounded-md bg-hairline" />
-      <div className="space-y-4">
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="h-32 animate-pulse rounded-lg bg-hairline" />
-        ))}
-      </div>
-    </div>
-  );
-}

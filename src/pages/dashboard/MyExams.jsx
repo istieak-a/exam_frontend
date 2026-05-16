@@ -1,45 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { ExamCard, ExamCardSkeleton } from '../../components/dashboard';
-import { getMySubmissions } from '../../services/examService';
+import { useState } from 'react';
+import { ExamCard } from '../../components/dashboard';
+import { completedExams as mockCompletedExams } from '../../data/mockData';
 
 export default function MyExams() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [submissions, setSubmissions] = useState([]);
+  const [submissions] = useState(mockCompletedExams);
   const [activeTab, setActiveTab] = useState('completed');
-
-  useEffect(() => {
-    const fetchSubmissions = async () => {
-      try {
-        setIsLoading(true);
-        const data = await getMySubmissions();
-        const mappedSubmissions = (data || []).map((submission) => ({
-          id: submission.examId,
-          submissionId: submission.id,
-          title: submission.examTitle,
-          examType: submission.examType,
-          type: submission.examType,
-          totalMarks: submission.maxScore,
-          totalQuestions: Object.keys(submission.answers || {}).length,
-          duration: 0,
-          course: submission.examTitle,
-          status: submission.status,
-          score: submission.totalScore,
-          totalScore: submission.totalScore,
-          maxScore: submission.maxScore,
-          submittedAt: submission.submittedAt,
-        }));
-        setSubmissions(mappedSubmissions);
-      } catch (err) {
-        console.error('Failed to fetch submissions:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchSubmissions();
-  }, []);
 
   const completedExams = submissions.filter(
     (s) =>
@@ -51,8 +18,6 @@ export default function MyExams() {
   const ongoingExams = submissions.filter(
     (s) => s.status === 'in-progress' || s.status === 'started',
   );
-
-  if (isLoading) return <PageSkeleton />;
 
   const list = activeTab === 'completed' ? completedExams : ongoingExams;
 
@@ -90,7 +55,7 @@ export default function MyExams() {
       {list.length > 0 ? (
         <div className="grid gap-5 lg:grid-cols-2">
           {list.map((exam) => (
-            <ExamCard key={`${exam.id}-${exam.submissionId}`} exam={exam} role="student" />
+            <ExamCard key={exam.id} exam={exam} role="student" />
           ))}
         </div>
       ) : (
@@ -118,20 +83,3 @@ function EmptyState({ icon, title, description }) {
   );
 }
 
-function PageSkeleton() {
-  return (
-    <div className="space-y-8">
-      <div className="space-y-2 border-b border-hairline pb-6">
-        <div className="h-3 w-20 animate-pulse rounded bg-hairline" />
-        <div className="h-10 w-64 animate-pulse rounded bg-hairline" />
-        <div className="h-3 w-48 animate-pulse rounded bg-hairline" />
-      </div>
-      <div className="h-10 w-64 animate-pulse rounded-md bg-hairline" />
-      <div className="grid gap-5 lg:grid-cols-2">
-        {[...Array(4)].map((_, i) => (
-          <ExamCardSkeleton key={i} />
-        ))}
-      </div>
-    </div>
-  );
-}
