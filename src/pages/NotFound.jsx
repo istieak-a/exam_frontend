@@ -1,20 +1,25 @@
 import { Link } from 'react-router-dom';
+import { Button } from '../components/ui';
 
 function NotFound() {
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-3xl mx-auto text-center">
-        <h1 className="text-6xl font-bold text-gray-800 mb-4">404</h1>
-        <p className="text-2xl text-gray-600 mb-6">Page Not Found</p>
-        <p className="text-gray-500 mb-8">
-          The page you're looking for doesn't exist.
+    <div className="flex min-h-[80vh] items-center justify-center bg-canvas px-6 py-16">
+      <div className="mx-auto max-w-xl text-center">
+        <p className="mb-6 text-xs uppercase tracking-[0.18em] text-muted">Error 404</p>
+        <h1 className="font-display text-[56px] leading-[1.05] tracking-[-0.025em] text-ink md:text-[72px]">
+          That page didn't make it to the syllabus.
+        </h1>
+        <p className="mx-auto mt-6 max-w-md text-[15px] leading-relaxed text-body">
+          The link you followed is broken, expired, or never existed. No fault of yours — just one of those things.
         </p>
-        <Link
-          to="/"
-          className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          Go Back Home
-        </Link>
+        <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <Link to="/">
+            <Button>Back to home</Button>
+          </Link>
+          <Link to="/dashboard">
+            <Button variant="secondary">Open dashboard</Button>
+          </Link>
+        </div>
       </div>
     </div>
   );

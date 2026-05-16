@@ -61,8 +61,8 @@ export default function Support() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Help & Support</h1>
-        <p className="mt-1 text-sm text-slate-600">
+        <h1 className="font-display text-[32px] leading-tight tracking-[-0.02em] text-ink">Help & Support</h1>
+        <p className="mt-1 text-sm text-body">
           Get help or submit a support request
         </p>
       </div>
@@ -74,47 +74,47 @@ export default function Support() {
           <div className="grid gap-4 sm:grid-cols-3">
             <a
               href="mailto:support@examhub.com"
-              className="flex flex-col items-center gap-3 rounded-xl bg-white p-6 text-center shadow-sm ring-1 ring-slate-200/80 transition-all hover:shadow-md"
+              className="flex flex-col items-center gap-3 rounded-xl bg-canvas p-6 text-center border border-hairline transition-colors hover:bg-surface-soft"
             >
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
                 <span className="material-symbols-outlined text-2xl">mail</span>
               </div>
               <div>
-                <p className="font-semibold text-slate-900">Email Us</p>
-                <p className="text-sm text-slate-600">support@examhub.com</p>
+                <p className="font-semibold text-ink">Email Us</p>
+                <p className="text-sm text-body">support@examhub.com</p>
               </div>
             </a>
 
             <a
               href="tel:+1234567890"
-              className="flex flex-col items-center gap-3 rounded-xl bg-white p-6 text-center shadow-sm ring-1 ring-slate-200/80 transition-all hover:shadow-md"
+              className="flex flex-col items-center gap-3 rounded-xl bg-canvas p-6 text-center border border-hairline transition-colors hover:bg-surface-soft"
             >
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-success/10 text-[#2f6e3d]">
                 <span className="material-symbols-outlined text-2xl">call</span>
               </div>
               <div>
-                <p className="font-semibold text-slate-900">Call Us</p>
-                <p className="text-sm text-slate-600">+1 (234) 567-890</p>
+                <p className="font-semibold text-ink">Call Us</p>
+                <p className="text-sm text-body">+1 (234) 567-890</p>
               </div>
             </a>
 
-            <button className="flex flex-col items-center gap-3 rounded-xl bg-white p-6 text-center shadow-sm ring-1 ring-slate-200/80 transition-all hover:shadow-md">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-50 text-sky-600">
+            <button className="flex flex-col items-center gap-3 rounded-xl bg-canvas p-6 text-center border border-hairline transition-colors hover:bg-surface-soft">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent-teal/10 text-accent-teal">
                 <span className="material-symbols-outlined text-2xl">chat</span>
               </div>
               <div>
-                <p className="font-semibold text-slate-900">Live Chat</p>
-                <p className="text-sm text-slate-600">Start a conversation</p>
+                <p className="font-semibold text-ink">Live Chat</p>
+                <p className="text-sm text-body">Start a conversation</p>
               </div>
             </button>
           </div>
 
           {/* Support Form */}
-          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200/80">
-            <h3 className="mb-6 text-lg font-semibold text-slate-900">Submit a Request</h3>
+          <div className="rounded-lg bg-canvas p-6 border border-hairline">
+            <h3 className="mb-6 font-display text-[22px] leading-tight tracking-[-0.015em] text-ink">Submit a Request</h3>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700">Subject</label>
+                <label className="block text-sm font-medium text-body-strong">Subject</label>
                 <input
                   type="text"
                   name="subject"
@@ -122,17 +122,17 @@ export default function Support() {
                   onChange={handleChange}
                   required
                   placeholder="Brief description of your issue"
-                  className="mt-1 w-full rounded-lg border-0 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 ring-1 ring-slate-200/80 focus:bg-white focus:ring-2 focus:ring-primary"
+                  className="mt-1 h-10 w-full rounded-md border border-hairline bg-canvas px-3.5 text-sm text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700">Category</label>
+                <label className="block text-sm font-medium text-body-strong">Category</label>
                 <select
                   name="category"
                   value={formData.category}
                   onChange={handleChange}
-                  className="mt-1 w-full rounded-lg border-0 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 ring-1 ring-slate-200/80 focus:bg-white focus:ring-2 focus:ring-primary"
+                  className="mt-1 h-10 w-full rounded-md border border-hairline bg-canvas px-3.5 text-sm text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 >
                   <option value="general">General Inquiry</option>
                   <option value="technical">Technical Issue</option>
@@ -144,7 +144,7 @@ export default function Support() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700">Message</label>
+                <label className="block text-sm font-medium text-body-strong">Message</label>
                 <textarea
                   name="message"
                   value={formData.message}
@@ -152,13 +152,13 @@ export default function Support() {
                   required
                   rows={6}
                   placeholder="Provide detailed information about your issue..."
-                  className="mt-1 w-full rounded-lg border-0 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 ring-1 ring-slate-200/80 focus:bg-white focus:ring-2 focus:ring-primary"
+                  className="mt-1 h-10 w-full rounded-md border border-hairline bg-canvas px-3.5 text-sm text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full rounded-lg bg-primary px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-primary/90"
+                className="w-full rounded-lg bg-primary px-6 py-3 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active"
               >
                 Submit Request
               </button>
@@ -168,29 +168,29 @@ export default function Support() {
 
         {/* FAQ */}
         <div>
-          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200/80">
-            <h3 className="mb-6 text-lg font-semibold text-slate-900">
+          <div className="rounded-lg bg-canvas p-6 border border-hairline">
+            <h3 className="mb-6 font-display text-[22px] leading-tight tracking-[-0.015em] text-ink">
               Frequently Asked Questions
             </h3>
             <div className="space-y-4">
               {faqItems.map((item, index) => (
                 <details
                   key={index}
-                  className="group rounded-lg bg-slate-50 p-4"
+                  className="group rounded-lg bg-surface-soft p-4"
                 >
-                  <summary className="flex cursor-pointer items-start gap-3 font-medium text-slate-900">
+                  <summary className="flex cursor-pointer items-start gap-3 font-medium text-ink">
                     <span className="material-symbols-outlined text-primary group-open:rotate-90 transition-transform">
                       chevron_right
                     </span>
                     <span className="flex-1">{item.question}</span>
                   </summary>
-                  <p className="mt-3 pl-8 text-sm text-slate-600">{item.answer}</p>
+                  <p className="mt-3 pl-8 text-sm text-body">{item.answer}</p>
                 </details>
               ))}
             </div>
 
             <div className="mt-6 rounded-lg bg-primary/5 p-4">
-              <p className="text-sm text-slate-700">
+              <p className="text-sm text-body-strong">
                 <strong>Response Time:</strong> We typically respond within 24 hours on business days.
               </p>
             </div>
@@ -205,19 +205,19 @@ function PageSkeleton() {
   return (
     <div className="space-y-6">
       <div>
-        <div className="h-8 w-48 rounded bg-slate-200 animate-pulse" />
-        <div className="mt-2 h-4 w-64 rounded bg-slate-200 animate-pulse" />
+        <div className="h-8 w-48 rounded bg-hairline animate-pulse" />
+        <div className="mt-2 h-4 w-64 rounded bg-hairline animate-pulse" />
       </div>
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
           <div className="grid gap-4 sm:grid-cols-3">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-32 rounded-xl bg-slate-200 animate-pulse" />
+              <div key={i} className="h-32 rounded-xl bg-hairline animate-pulse" />
             ))}
           </div>
-          <div className="h-[500px] rounded-2xl bg-slate-200 animate-pulse" />
+          <div className="h-[500px] rounded-lg bg-hairline animate-pulse" />
         </div>
-        <div className="h-[700px] rounded-2xl bg-slate-200 animate-pulse" />
+        <div className="h-[700px] rounded-lg bg-hairline animate-pulse" />
       </div>
     </div>
   );

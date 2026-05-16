@@ -89,15 +89,15 @@ export default function GradeSubmission() {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
         <div className="text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
-            <span className="material-symbols-outlined text-3xl text-slate-400">fact_check</span>
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-surface-card">
+            <span className="material-symbols-outlined text-3xl text-muted-soft">fact_check</span>
           </div>
-          <h3 className="mb-2 text-lg font-semibold text-slate-900">Submission not found</h3>
-          <p className="mb-4 text-sm text-slate-600">{error || "The submission you're looking for doesn't exist."}</p>
+          <h3 className="mb-2 text-lg font-semibold text-ink">Submission not found</h3>
+          <p className="mb-4 text-sm text-body">{error || "The submission you're looking for doesn't exist."}</p>
           <button
             onClick={() => navigate('/dashboard/submissions')}
-            style={{ backgroundColor: '#0084D1' }}
-            className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-all hover:opacity-90"
+ 
+            className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active"
           >
             <span className="material-symbols-outlined text-lg">arrow_back</span>
             Back to Submissions
@@ -112,17 +112,17 @@ export default function GradeSubmission() {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
         <div className="text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-50">
-            <span className="material-symbols-outlined text-3xl text-green-600">check_circle</span>
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
+            <span className="material-symbols-outlined text-3xl text-[#2f6e3d]">check_circle</span>
           </div>
-          <h3 className="mb-2 text-lg font-semibold text-slate-900">MCQ Exam - Auto-Graded</h3>
-          <p className="mb-4 text-sm text-slate-600">
+          <h3 className="mb-2 text-lg font-semibold text-ink">MCQ Exam - Auto-Graded</h3>
+          <p className="mb-4 text-sm text-body">
             This is an MCQ exam and has been automatically graded. No manual grading required.
           </p>
           <button
             onClick={() => navigate('/dashboard/submissions')}
-            style={{ backgroundColor: '#0084D1' }}
-            className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-all hover:opacity-90"
+ 
+            className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active"
           >
             <span className="material-symbols-outlined text-lg">arrow_back</span>
             Back to Submissions
@@ -197,13 +197,13 @@ export default function GradeSubmission() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate('/dashboard/submissions')}
-              className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition-colors hover:bg-slate-50"
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-hairline text-body transition-colors hover:bg-surface-soft"
             >
               <span className="material-symbols-outlined text-xl">arrow_back</span>
             </button>
             <div>
-              <h1 className="text-2xl font-bold text-slate-900">Grade Submission</h1>
-              <p className="mt-1 text-sm text-slate-600">
+              <h1 className="font-display text-[32px] leading-tight tracking-[-0.02em] text-ink">Grade Submission</h1>
+              <p className="mt-1 text-sm text-body">
                 Review and grade student's exam submission
               </p>
             </div>
@@ -213,7 +213,7 @@ export default function GradeSubmission() {
         <div className="flex gap-2">
           <button
             onClick={() => navigate('/dashboard/submissions')}
-            className="flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2.5 font-medium text-slate-700 transition-all hover:bg-slate-50"
+            className="flex items-center gap-2 rounded-lg border border-hairline px-4 py-2.5 font-medium text-body-strong transition-all hover:bg-surface-soft"
           >
             <span className="material-symbols-outlined text-xl">close</span>
             Cancel
@@ -221,8 +221,8 @@ export default function GradeSubmission() {
           <button
             onClick={handleSubmit}
             disabled={isSaving}
-            style={{ backgroundColor: '#0084D1' }}
-            className="flex items-center gap-2 rounded-lg px-5 py-2.5 font-medium text-white transition-all hover:opacity-90 disabled:opacity-50"
+ 
+            className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-5 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active disabled:opacity-60"
           >
             <span className="material-symbols-outlined text-xl">
               {isSaving ? 'hourglass_empty' : 'check_circle'}
@@ -234,15 +234,15 @@ export default function GradeSubmission() {
 
       {/* Error Message */}
       {saveError && (
-        <div className="rounded-lg bg-red-50 border-2 border-red-200 p-4 flex items-start gap-3">
-          <span className="material-symbols-outlined text-red-600">error</span>
+        <div className="rounded-lg bg-error/10 border-2 border-error/25 p-4 flex items-start gap-3">
+          <span className="material-symbols-outlined text-[#8a3636]">error</span>
           <div className="flex-1">
             <p className="text-sm font-medium text-red-900">Error Saving Grades</p>
-            <p className="text-sm text-red-700 mt-1">{saveError}</p>
+            <p className="text-sm text-[#8a3636] mt-1">{saveError}</p>
           </div>
           <button
             onClick={() => setSaveError(null)}
-            className="text-red-400 hover:text-red-600"
+            className="text-error hover:text-[#8a3636]"
           >
             <span className="material-symbols-outlined">close</span>
           </button>
@@ -250,18 +250,18 @@ export default function GradeSubmission() {
       )}
 
       {/* Student & Exam Info */}
-      <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-200">
+      <div className="rounded-lg bg-canvas p-6 shadow-sm border border-hairline">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-4">
-            <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-500 text-xl font-bold text-white">
+            <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full bg-primary/15 font-display text-[24px] leading-none text-primary">
               {submission.studentName?.split(' ').map(n => n[0]).join('').toUpperCase() || 'S'}
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-slate-900">{submission.studentName}</h2>
-              <p className="text-sm text-slate-600">ID: {submission.studentId}</p>
+              <h2 className="text-xl font-semibold text-ink">{submission.studentName}</h2>
+              <p className="text-sm text-body">ID: {submission.studentId}</p>
               <div className="mt-2 flex items-center gap-2">
-                <span className="material-symbols-outlined text-base text-slate-400">assignment</span>
-                <span className="font-medium text-slate-700">{submission.examTitle}</span>
+                <span className="material-symbols-outlined text-base text-muted-soft">assignment</span>
+                <span className="font-medium text-body-strong">{submission.examTitle}</span>
               </div>
             </div>
           </div>
@@ -269,51 +269,51 @@ export default function GradeSubmission() {
           <span
             className={`rounded-full border px-4 py-1.5 text-sm font-medium ${
               submission.status === 'FULLY_GRADED'
-                ? 'text-green-700 bg-green-50 border-green-200'
-                : 'text-amber-700 bg-amber-50 border-amber-200'
+                ? 'text-[#2f6e3d] bg-success/10 border-success/25'
+                : 'text-[#7a5a0e] bg-warning/10 border-warning/30'
             }`}
           >
             {submission.status === 'FULLY_GRADED' ? 'Graded' : 'Pending Review'}
           </span>
         </div>
         
-        <div className="mt-4 grid gap-4 sm:grid-cols-3 border-t border-slate-200 pt-4">
+        <div className="mt-4 grid gap-4 sm:grid-cols-3 border-t border-hairline pt-4">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-slate-400">schedule</span>
+            <span className="material-symbols-outlined text-muted-soft">schedule</span>
             <div>
-              <p className="text-xs text-slate-500">Submitted At</p>
-              <p className="text-sm font-medium text-slate-900">{formatDate(submission.submittedAt)}</p>
+              <p className="text-xs text-muted">Submitted At</p>
+              <p className="text-sm font-medium text-ink">{formatDate(submission.submittedAt)}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-slate-400">quiz</span>
+            <span className="material-symbols-outlined text-muted-soft">quiz</span>
             <div>
-              <p className="text-xs text-slate-500">Questions</p>
-              <p className="text-sm font-medium text-slate-900">{questions.length}</p>
+              <p className="text-xs text-muted">Questions</p>
+              <p className="text-sm font-medium text-ink">{questions.length}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-slate-400">star</span>
+            <span className="material-symbols-outlined text-muted-soft">star</span>
             <div>
-              <p className="text-xs text-slate-500">Max Score</p>
-              <p className="text-sm font-medium text-slate-900">{submission.maxScore}</p>
+              <p className="text-xs text-muted">Max Score</p>
+              <p className="text-sm font-medium text-ink">{submission.maxScore}</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Score Summary */}
-      <div className="rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100 p-6 border border-blue-200">
+      <div className="rounded-lg bg-surface-card p-6 border border-hairline">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-semibold text-blue-900">Total Score</h3>
-            <p className="text-sm text-blue-700">Current grading progress</p>
+            <h3 className="font-display text-[22px] leading-tight tracking-[-0.015em] text-ink">Total score</h3>
+            <p className="text-sm text-muted">Current grading progress</p>
           </div>
           <div className="text-right">
-            <p className="text-4xl font-bold text-blue-900">
+            <p className="font-display text-[40px] leading-none text-ink">
               {calculateTotalMarks()}/{calculateMaxMarks()}
             </p>
-            <p className="mt-1 text-sm font-medium text-blue-700">
+            <p className="mt-1 text-sm font-medium text-primary">
               {calculatePercentage()}%
             </p>
           </div>
@@ -323,16 +323,16 @@ export default function GradeSubmission() {
       {/* Questions Grading */}
       <div className="space-y-4">
         <div className="flex items-center gap-2">
-          <h3 className="text-lg font-semibold text-slate-900">Questions & Answers</h3>
-          <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700">
+          <h3 className="font-display text-[20px] leading-tight tracking-[-0.015em] text-ink">Questions & Answers</h3>
+          <span className="rounded-full bg-primary/15 px-3 py-1 text-xs font-medium text-primary">
             {questions.length} Question{questions.length !== 1 ? 's' : ''}
           </span>
         </div>
         
         {questions.length === 0 ? (
-          <div className="rounded-2xl bg-slate-50 p-8 text-center border border-slate-200">
-            <span className="material-symbols-outlined text-4xl text-slate-400 mb-2">quiz</span>
-            <p className="text-slate-600">No questions found for this exam</p>
+          <div className="rounded-lg bg-surface-soft p-8 text-center border border-hairline">
+            <span className="material-symbols-outlined text-4xl text-muted-soft mb-2">quiz</span>
+            <p className="text-body">No questions found for this exam</p>
           </div>
         ) : (
           questions.map((question, index) => {
@@ -340,11 +340,11 @@ export default function GradeSubmission() {
             const studentAnswer = submission.answers?.[question.id] || '';
             
             return (
-              <div key={question.id} className="rounded-2xl bg-white p-6 shadow-sm border-2 border-slate-200 hover:border-blue-300 transition-colors">
+              <div key={question.id} className="rounded-lg bg-canvas p-6 shadow-sm border-2 border-hairline hover:border-blue-300 transition-colors">
                 <div className="flex items-start gap-4">
                   <div
-                    className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg text-white font-bold"
-                    style={{ backgroundColor: '#0084D1' }}
+                    className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md bg-primary text-sm font-medium text-on-primary"
+ 
                   >
                     {index + 1}
                   </div>
@@ -352,8 +352,8 @@ export default function GradeSubmission() {
                     <div className="mb-4">
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1">
-                          <p className="text-base font-medium text-slate-900 mb-2">{question.questionText || question.question}</p>
-                          <div className="flex items-center gap-3 text-xs text-slate-500">
+                          <p className="text-base font-medium text-ink mb-2">{question.questionText || question.question}</p>
+                          <div className="flex items-center gap-3 text-xs text-muted">
                             <span className="flex items-center gap-1">
                               <span className="material-symbols-outlined text-sm">edit_note</span>
                               {question.type === 'MCQ' ? 'Multiple Choice' : 'Creative Question'}
@@ -368,22 +368,22 @@ export default function GradeSubmission() {
                     </div>
 
                     {/* Student's Answer */}
-                    <div className="mb-4 rounded-lg bg-slate-50 p-4 border border-slate-200">
-                      <p className="mb-2 text-xs font-semibold text-slate-700 uppercase tracking-wide">Student's Answer:</p>
+                    <div className="mb-4 rounded-lg bg-surface-soft p-4 border border-hairline">
+                      <p className="mb-2 text-xs font-semibold text-body-strong uppercase tracking-wide">Student's Answer:</p>
                       {studentAnswer ? (
-                        <p className="text-sm text-slate-900 whitespace-pre-wrap leading-relaxed">
+                        <p className="text-sm text-ink whitespace-pre-wrap leading-relaxed">
                           {studentAnswer}
                         </p>
                       ) : (
-                        <p className="text-sm text-slate-400 italic">No answer provided</p>
+                        <p className="text-sm text-muted-soft italic">No answer provided</p>
                       )}
                     </div>
 
                   {/* Marks Input */}
-                    <div className="flex items-center gap-4 bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <div className="flex items-center gap-4 bg-primary/10 p-4 rounded-lg border border-primary/20">
                       <div className="flex-1 max-w-xs">
-                        <label className="mb-2 block text-sm font-semibold text-blue-900">
-                          Marks Awarded <span className="text-red-500">*</span>
+                        <label className="mb-2 block text-sm font-semibold text-ink">
+                          Marks Awarded <span className="text-error">*</span>
                         </label>
                         <div className="relative">
                           <input
@@ -393,14 +393,14 @@ export default function GradeSubmission() {
                             step="0.5"
                             value={gradeIndex >= 0 ? grades[gradeIndex].marks : 0}
                             onChange={(e) => handleGradeChange(question.id, e.target.value)}
-                            className="w-full rounded-lg border-2 border-blue-300 px-4 py-3 text-base font-semibold text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                            className="w-full rounded-lg border-2 border-blue-300 px-4 py-3 text-base font-semibold text-ink focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                           />
-                          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-600">
+                          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-body">
                             / {question.marks}
                           </span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-blue-700">
+                      <div className="flex items-center gap-2 text-sm text-primary">
                         <span className="material-symbols-outlined text-lg">info</span>
                         <span>Enter marks between 0 and {question.marks}</span>
                       </div>
@@ -417,15 +417,15 @@ export default function GradeSubmission() {
       <div className="flex justify-end gap-2">
         <button
           onClick={() => navigate('/dashboard/submissions')}
-          className="rounded-lg border border-slate-200 px-6 py-2.5 font-medium text-slate-700 transition-all hover:bg-slate-50"
+          className="rounded-lg border border-hairline px-6 py-2.5 font-medium text-body-strong transition-all hover:bg-surface-soft"
         >
           Cancel
         </button>
         <button
           onClick={handleSubmit}
           disabled={isSaving}
-          style={{ backgroundColor: '#0084D1' }}
-          className="rounded-lg px-6 py-2.5 font-medium text-white transition-all hover:opacity-90 disabled:opacity-50"
+ 
+          className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-6 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active disabled:opacity-60"
         >
           {isSaving ? 'Saving...' : 'Save Grades'}
         </button>
@@ -441,28 +441,28 @@ function PageSkeleton() {
       {/* Header Skeleton */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 animate-pulse rounded-lg bg-slate-200"></div>
+          <div className="h-10 w-10 animate-pulse rounded-lg bg-hairline"></div>
           <div>
-            <div className="h-8 w-96 animate-pulse rounded-lg bg-slate-200"></div>
-            <div className="mt-2 h-4 w-80 animate-pulse rounded bg-slate-200"></div>
+            <div className="h-8 w-96 animate-pulse rounded-lg bg-hairline"></div>
+            <div className="mt-2 h-4 w-80 animate-pulse rounded bg-hairline"></div>
           </div>
         </div>
         <div className="flex gap-2">
-          <div className="h-10 w-24 animate-pulse rounded-lg bg-slate-200"></div>
-          <div className="h-10 w-32 animate-pulse rounded-lg bg-slate-200"></div>
+          <div className="h-10 w-24 animate-pulse rounded-lg bg-hairline"></div>
+          <div className="h-10 w-32 animate-pulse rounded-lg bg-hairline"></div>
         </div>
       </div>
 
       {/* Info Skeleton */}
-      <div className="h-48 animate-pulse rounded-2xl bg-slate-200"></div>
+      <div className="h-48 animate-pulse rounded-lg bg-hairline"></div>
 
       {/* Score Skeleton */}
-      <div className="h-32 animate-pulse rounded-2xl bg-slate-200"></div>
+      <div className="h-32 animate-pulse rounded-lg bg-hairline"></div>
 
       {/* Questions Skeleton */}
       <div className="space-y-4">
         {[...Array(3)].map((_, i) => (
-          <div key={i} className="h-64 animate-pulse rounded-2xl bg-slate-200"></div>
+          <div key={i} className="h-64 animate-pulse rounded-lg bg-hairline"></div>
         ))}
       </div>
     </div>

@@ -1,73 +1,75 @@
 import { useState } from 'react';
-import { SectionWrapper, Container, SectionHeader } from '../ui';
+import { Container, SectionHeader, SectionWrapper } from '../ui';
 
 const faqs = [
   {
     question: 'How do I get started with ExamHub?',
-    answer: 'Getting started is easy! Simply sign up for a free account, create your first exam using our intuitive editor, and invite students via email or a shareable link. No technical expertise required.',
+    answer:
+      'Sign up, open the editor, write the first question. Invite students by email or link. No setup call, no onboarding wizard — the editor is the onboarding.',
   },
   {
-    question: 'What types of questions can I create?',
-    answer: 'ExamHub supports multiple question types including Multiple Choice (MCQ), True/False, Short Answer, and Essay questions. You can mix different types within a single exam to create comprehensive assessments.',
+    question: 'What kinds of questions can I author?',
+    answer:
+      'Multiple choice, true/false, short answer, and essay. They mix freely inside the same exam, and each one is rendered as if it were the only question on the page.',
   },
   {
-    question: 'How does auto-grading work?',
-    answer: 'Multiple Choice and True/False questions are graded instantly and automatically. For short answers, you can set accepted answers or keywords. Essay questions require manual grading, but our interface makes it quick and easy.',
+    question: 'How does the auto-grading actually work?',
+    answer:
+      'MCQ and true/false are graded the second a student submits. Short answers grade against either an exact match or a small set of accepted keywords. Essays are graded by you, in a side-by-side reader with rubric anchors.',
   },
   {
-    question: 'Is my exam data secure?',
-    answer: 'Absolutely. We use industry-standard encryption for all data transmission and storage. Exam submissions are securely stored, and we implement anti-cheating measures like time limits and question randomization.',
+    question: 'Is exam data kept private?',
+    answer:
+      'Transport is TLS; storage is encrypted at rest. Submissions are scoped to the course staff that owns the exam. No model training, no third-party analytics.',
   },
   {
-    question: 'Can students access exams on mobile devices?',
-    answer: 'Yes! ExamHub is fully responsive and works seamlessly on desktops, tablets, and smartphones. Students can take exams from any device with an internet connection.',
+    question: 'Does it work on phones and tablets?',
+    answer:
+      'Yes — the student-facing surface is mobile-first. The teacher-facing editor is desktop-first by design; writing exams reads more like writing a document than tapping through a form.',
   },
   {
-    question: 'How does the real-time chat feature work?',
-    answer: 'Teachers and students can communicate through built-in messaging. Teachers can make announcements, students can ask questions, and everyone stays connected during the exam process.',
+    question: 'What does the chat feature give you?',
+    answer:
+      'A permanent thread per student per exam. Teachers post clarifications; students post regrade requests. Everything stays attached to the exam record.',
   },
   {
-    question: 'Is there a free plan available?',
-    answer: 'Yes! We offer a free plan for individual educators with essential features. For departments and universities, we have flexible pricing plans based on the number of students and exams.',
+    question: 'Is there a free tier?',
+    answer:
+      'Yes. Free for individual instructors, with a generous student cap. Departments and universities are on usage-based pricing — talk to us.',
   },
   {
-    question: 'Can I export exam results?',
-    answer: 'Yes, you can export all exam results and analytics in CSV or PDF format. This makes it easy to integrate with your existing grade management systems.',
+    question: 'Can I export results?',
+    answer:
+      'CSV for grades, PDF for individual submissions. Most existing LMS systems pick up the CSV without further work.',
   },
 ];
 
 function FAQItem({ faq, isOpen, onToggle }) {
   return (
-    <div className="border-b border-border-light last:border-none">
+    <div className="border-b border-hairline last:border-none">
       <button
         onClick={onToggle}
-        className="w-full py-6 flex items-center justify-between text-left group cursor-pointer"
+        className="flex w-full cursor-pointer items-start justify-between gap-6 py-6 text-left"
       >
-        <span className="text-lg font-semibold text-text-light-primary group-hover:text-primary transition-colors pr-8">
+        <span className="font-display text-[20px] leading-snug tracking-[-0.015em] text-ink md:text-[22px]">
           {faq.question}
         </span>
-        <span className={`
-          flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center
-          transition-all duration-300
-          ${isOpen 
-            ? 'bg-primary text-white rotate-180' 
-            : 'bg-primary/10 text-primary group-hover:bg-primary/20'
-          }
-        `}>
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        <span
+          className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-hairline text-ink transition-transform duration-200 ${
+            isOpen ? 'rotate-180 border-primary text-primary' : ''
+          }`}
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
           </svg>
         </span>
       </button>
-      <div 
-        className={`
-          overflow-hidden transition-all duration-300
-          ${isOpen ? 'max-h-96 pb-6' : 'max-h-0'}
-        `}
+      <div
+        className={`overflow-hidden transition-[max-height,padding] duration-200 ${
+          isOpen ? 'max-h-96 pb-6' : 'max-h-0 pb-0'
+        }`}
       >
-        <p className="text-text-light-secondary leading-relaxed">
-          {faq.answer}
-        </p>
+        <p className="max-w-3xl text-[15px] leading-relaxed text-body">{faq.answer}</p>
       </div>
     </div>
   );
@@ -77,18 +79,18 @@ export function FAQSection() {
   const [openIndex, setOpenIndex] = useState(0);
 
   return (
-    <SectionWrapper background="light" id="faq">
-      <Container size="small">
+    <SectionWrapper background="canvas" id="faq">
+      <Container size="narrow">
         <SectionHeader
-          badge="❓ FAQ"
-          title="Frequently Asked Questions"
-          subtitle="Everything you need to know about ExamHub. Can't find your answer? Contact our support team."
+          badge="FAQ"
+          title="Questions we've been asked enough to answer here."
+          subtitle="If yours isn't on the list, the support inbox is genuinely staffed."
         />
 
-        <div className="bg-white rounded-2xl border border-border-light shadow-sm p-2 md:p-4">
+        <div className="border-t border-hairline">
           {faqs.map((faq, index) => (
             <FAQItem
-              key={index}
+              key={faq.question}
               faq={faq}
               isOpen={openIndex === index}
               onToggle={() => setOpenIndex(openIndex === index ? -1 : index)}
@@ -96,19 +98,16 @@ export function FAQSection() {
           ))}
         </div>
 
-        {/* Contact CTA */}
         <div className="mt-12 text-center">
-          <p className="text-text-light-secondary mb-4">
-            Still have questions?
-          </p>
-          <a 
+          <p className="mb-3 text-sm text-muted">Still have questions?</p>
+          <a
             href="mailto:support@examhub.com"
-            className="inline-flex items-center gap-2 text-primary font-semibold hover:underline"
+            className="inline-flex items-center gap-2 text-sm font-medium text-primary underline-offset-4 hover:underline"
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
             </svg>
-            Contact Support
+            Contact support
           </a>
         </div>
       </Container>

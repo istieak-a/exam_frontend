@@ -1,38 +1,35 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { ExamCard, ExamCardSkeleton } from '../../components/dashboard';
 import { getMySubmissions } from '../../services/examService';
 
 export default function MyExams() {
   const [isLoading, setIsLoading] = useState(true);
   const [submissions, setSubmissions] = useState([]);
-  const [activeTab, setActiveTab] = useState('completed'); // 'completed' or 'ongoing'
+  const [activeTab, setActiveTab] = useState('completed');
 
   useEffect(() => {
     const fetchSubmissions = async () => {
       try {
         setIsLoading(true);
         const data = await getMySubmissions();
-        
-        // Map submissions to exam card format
-        const mappedSubmissions = (data || []).map(submission => ({
-          id: submission.examId, // Use examId for navigation
-          submissionId: submission.id, // Keep submission ID
+        const mappedSubmissions = (data || []).map((submission) => ({
+          id: submission.examId,
+          submissionId: submission.id,
           title: submission.examTitle,
           examType: submission.examType,
           type: submission.examType,
           totalMarks: submission.maxScore,
           totalQuestions: Object.keys(submission.answers || {}).length,
-          duration: 0, // Not available in submission, could fetch from exam
-          course: submission.examTitle, // Use title as fallback
+          duration: 0,
+          course: submission.examTitle,
           status: submission.status,
           score: submission.totalScore,
           totalScore: submission.totalScore,
           maxScore: submission.maxScore,
           submittedAt: submission.submittedAt,
         }));
-        
         setSubmissions(mappedSubmissions);
       } catch (err) {
         console.error('Failed to fetch submissions:', err);
@@ -44,93 +41,68 @@ export default function MyExams() {
     fetchSubmissions();
   }, []);
 
-  // Separate completed and ongoing submissions
-  const completedExams = submissions.filter(s => 
-    s.status === 'graded' || s.status === 'completed' || s.status === 'pending' || s.status === 'in-review'
+  const completedExams = submissions.filter(
+    (s) =>
+      s.status === 'graded' ||
+      s.status === 'completed' ||
+      s.status === 'pending' ||
+      s.status === 'in-review',
   );
-  const ongoingExams = submissions.filter(s => 
-    s.status === 'in-progress' || s.status === 'started'
+  const ongoingExams = submissions.filter(
+    (s) => s.status === 'in-progress' || s.status === 'started',
   );
 
-  if (isLoading) {
-    return <PageSkeleton />;
-  }
+  if (isLoading) return <PageSkeleton />;
+
+  const list = activeTab === 'completed' ? completedExams : ongoingExams;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">My Exams</h1>
-        <p className="mt-1 text-sm text-slate-600">
-          View your exam history and performance
-        </p>
+    <div className="space-y-8">
+      <header className="border-b border-hairline pb-6">
+        <p className="text-xs uppercase tracking-[0.15em] text-muted">Your history</p>
+        <h1 className="mt-2 font-display text-[36px] leading-tight tracking-[-0.02em] text-ink md:text-[42px]">
+          My exams
+        </h1>
+        <p className="mt-2 text-sm text-muted">A quiet record of what you've done.</p>
+      </header>
+
+      <div className="inline-flex items-center gap-1 rounded-md bg-surface-soft p-1">
+        {[
+          { id: 'completed', label: 'Completed', count: completedExams.length, icon: 'task_alt' },
+          { id: 'ongoing', label: 'Ongoing', count: ongoingExams.length, icon: 'pending' },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+              activeTab === tab.id
+                ? 'bg-canvas text-ink shadow-sm'
+                : 'text-muted hover:text-ink'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[16px]">{tab.icon}</span>
+            {tab.label}
+            <span className="text-xs text-muted">({tab.count})</span>
+          </button>
+        ))}
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2 rounded-lg bg-slate-100 p-1">
-        <button
-          onClick={() => setActiveTab('completed')}
-          className={`flex-1 rounded-md px-4 py-2.5 text-sm font-medium transition-all ${
-            activeTab === 'completed'
-              ? 'bg-white text-slate-900 shadow-sm'
-              : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          <span className="flex items-center justify-center gap-2">
-            <span className="material-symbols-outlined text-lg">task_alt</span>
-            Completed ({completedExams.length})
-          </span>
-        </button>
-        <button
-          onClick={() => setActiveTab('ongoing')}
-          className={`flex-1 rounded-md px-4 py-2.5 text-sm font-medium transition-all ${
-            activeTab === 'ongoing'
-              ? 'bg-white text-slate-900 shadow-sm'
-              : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          <span className="flex items-center justify-center gap-2">
-            <span className="material-symbols-outlined text-lg">pending</span>
-            Ongoing ({ongoingExams.length})
-          </span>
-        </button>
-      </div>
-
-      {/* Content */}
-      {activeTab === 'completed' ? (
-        <div>
-          {completedExams.length > 0 ? (
-            <div className="grid gap-6 lg:grid-cols-2">
-              {completedExams.map((exam) => (
-                <ExamCard key={exam.id} exam={exam} role="student" />
-              ))}
-            </div>
-          ) : (
-            <EmptyState
-              icon="task_alt"
-              title="No completed exams"
-              description="You haven't completed any exams yet"
-            />
-          )}
+      {list.length > 0 ? (
+        <div className="grid gap-5 lg:grid-cols-2">
+          {list.map((exam) => (
+            <ExamCard key={`${exam.id}-${exam.submissionId}`} exam={exam} role="student" />
+          ))}
         </div>
       ) : (
-        <div>
-          {ongoingExams.length > 0 ? (
-            <div className="grid gap-6 lg:grid-cols-2">
-              {ongoingExams.map((exam) => (
-                <div key={exam.id} className="relative">
-                  <ExamCard exam={exam} role="student" />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <EmptyState
-              icon="pending"
-              title="No ongoing exams"
-              description="You don't have any exams in progress"
-            />
-          )}
-        </div>
+        <EmptyState
+          icon={activeTab === 'completed' ? 'task_alt' : 'pending'}
+          title={activeTab === 'completed' ? 'Nothing completed yet.' : 'Nothing in progress.'}
+          description={
+            activeTab === 'completed'
+              ? 'Once you finish an exam, it shows up here with its grade.'
+              : "You don't have an exam in progress."
+          }
+        />
       )}
     </div>
   );
@@ -138,25 +110,24 @@ export default function MyExams() {
 
 function EmptyState({ icon, title, description }) {
   return (
-    <div className="rounded-2xl bg-white p-12 text-center shadow-sm ring-1 ring-slate-200/80">
-      <span className="material-symbols-outlined mx-auto text-6xl text-slate-300">
-        {icon}
-      </span>
-      <h3 className="mt-4 text-lg font-semibold text-slate-900">{title}</h3>
-      <p className="mt-2 text-sm text-slate-600">{description}</p>
+    <div className="rounded-lg border border-dashed border-hairline bg-surface-soft p-12 text-center">
+      <span className="material-symbols-outlined text-[40px] text-muted">{icon}</span>
+      <h3 className="mt-3 font-display text-[22px] leading-tight text-ink">{title}</h3>
+      <p className="mt-2 text-sm text-muted">{description}</p>
     </div>
   );
 }
 
 function PageSkeleton() {
   return (
-    <div className="space-y-6">
-      <div>
-        <div className="h-8 w-48 rounded bg-slate-200 animate-pulse" />
-        <div className="mt-2 h-4 w-64 rounded bg-slate-200 animate-pulse" />
+    <div className="space-y-8">
+      <div className="space-y-2 border-b border-hairline pb-6">
+        <div className="h-3 w-20 animate-pulse rounded bg-hairline" />
+        <div className="h-10 w-64 animate-pulse rounded bg-hairline" />
+        <div className="h-3 w-48 animate-pulse rounded bg-hairline" />
       </div>
-      <div className="h-12 w-full rounded-lg bg-slate-200 animate-pulse" />
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="h-10 w-64 animate-pulse rounded-md bg-hairline" />
+      <div className="grid gap-5 lg:grid-cols-2">
         {[...Array(4)].map((_, i) => (
           <ExamCardSkeleton key={i} />
         ))}

@@ -247,7 +247,7 @@ export default function TakeExam() {
   if (showInstructions) {
     return (
       <div className="mx-auto max-w-4xl space-y-6">
-        <div className="rounded-2xl bg-white p-8 shadow-sm ring-1 ring-slate-200/80">
+        <div className="rounded-2xl bg-white p-8 shadow-sm border border-hairline">
           <div className="text-center">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
               <span className="material-symbols-outlined text-3xl text-primary">quiz</span>
@@ -288,10 +288,10 @@ export default function TakeExam() {
             </ul>
           </div>
 
-          <div className="mt-8 flex items-center justify-between rounded-lg bg-amber-50 p-4 ring-1 ring-amber-200">
+          <div className="mt-8 flex items-center justify-between rounded-lg bg-amber-50 p-4 border border-warning/30">
             <div className="flex items-center gap-3">
               <span className="material-symbols-outlined text-amber-600">warning</span>
-              <span className="text-sm font-medium text-amber-900">
+              <span className="text-sm font-medium text-[#7a5a0e]">
                 Once you start, the timer will begin and cannot be paused
               </span>
             </div>
@@ -306,7 +306,7 @@ export default function TakeExam() {
             </button>
             <button
               onClick={() => setShowInstructions(false)}
-              className="flex-1 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-primary/90"
+              className="flex-1 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active"
             >
               Start Exam
             </button>
@@ -320,7 +320,7 @@ export default function TakeExam() {
   return (
     <div className="space-y-6">
       {/* Header with Timer */}
-      <div className="sticky top-0 z-10 rounded-2xl bg-white p-4 shadow-lg ring-1 ring-slate-200/80">
+      <div className="sticky top-0 z-10 rounded-2xl bg-white p-4 shadow-lg border border-hairline">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-lg font-bold text-slate-900">{mockExam.title}</h1>
@@ -343,7 +343,7 @@ export default function TakeExam() {
             </div>
             <button
               onClick={() => setShowSubmitConfirm(true)}
-              className="rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary/90"
+              className="rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active"
             >
               Submit Exam
             </button>
@@ -354,7 +354,7 @@ export default function TakeExam() {
       <div className="grid gap-6 lg:grid-cols-4">
         {/* Question Area */}
         <div className="lg:col-span-3">
-          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200/80">
+          <div className="rounded-2xl bg-white p-6 shadow-sm border border-hairline">
             {/* Question Header */}
             <div className="mb-6 flex items-start justify-between">
               <div className="flex-1">
@@ -419,7 +419,7 @@ export default function TakeExam() {
                   }
                   placeholder="Type your answer here..."
                   rows={8}
-                  className="w-full rounded-lg border-0 bg-slate-50 px-4 py-3 text-slate-900 ring-1 ring-slate-200/80 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-primary"
+                  className="w-full rounded-lg border-0 bg-slate-50 px-4 py-3 text-slate-900 border border-hairline placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-primary"
                 />
                 <div className="mt-2 flex items-center justify-between text-sm text-slate-600">
                   <span>
@@ -450,7 +450,7 @@ export default function TakeExam() {
               {currentQuestionIndex === mockExam.questions.length - 1 ? (
                 <button
                   onClick={() => setShowSubmitConfirm(true)}
-                  className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary/90"
+                  className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active"
                 >
                   Submit Exam
                   <span className="material-symbols-outlined">check</span>
@@ -470,7 +470,7 @@ export default function TakeExam() {
 
         {/* Question Palette */}
         <div className="lg:col-span-1">
-          <div className="sticky top-24 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200/80">
+          <div className="sticky top-24 rounded-2xl bg-white p-4 shadow-sm border border-hairline">
             <h3 className="mb-4 font-semibold text-slate-900">Question Palette</h3>
             
             <div className="mb-4 space-y-2 text-xs">
@@ -493,7 +493,7 @@ export default function TakeExam() {
                   onClick={() => handleQuestionNavigate(index)}
                   className={`aspect-square rounded-lg text-sm font-medium transition-all ${
                     currentQuestionIndex === index
-                      ? 'bg-primary text-white ring-2 ring-primary ring-offset-2'
+                      ? 'bg-primary text-on-primary ring-2 ring-primary ring-offset-2'
                       : getQuestionStatus(q.id) === 'answered'
                       ? 'bg-emerald-500 text-white hover:bg-emerald-600'
                       : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
@@ -504,8 +504,8 @@ export default function TakeExam() {
               ))}
             </div>
 
-            <div className="mt-4 rounded-lg bg-amber-50 p-3 ring-1 ring-amber-200">
-              <p className="text-xs text-amber-900">
+            <div className="mt-4 rounded-lg bg-amber-50 p-3 border border-warning/30">
+              <p className="text-xs text-[#7a5a0e]">
                 Make sure to answer all questions before submitting
               </p>
             </div>

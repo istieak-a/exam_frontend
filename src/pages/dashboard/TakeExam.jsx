@@ -182,7 +182,7 @@ export default function TakeExam() {
       <div className="flex min-h-[60vh] items-center justify-center">
         <div className="text-center">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent mx-auto mb-4"></div>
-          <p className="text-slate-600">Loading exam...</p>
+          <p className="text-body">Loading exam...</p>
         </div>
       </div>
     );
@@ -191,13 +191,13 @@ export default function TakeExam() {
   // Error state
   if (error || !exam) {
     return (
-      <div className="rounded-2xl bg-white p-8 shadow-sm ring-1 ring-slate-200/80 text-center">
+      <div className="rounded-lg bg-canvas p-8 border border-hairline text-center">
         <span className="material-symbols-outlined mx-auto text-6xl text-red-300">error</span>
-        <h3 className="mt-4 text-lg font-semibold text-slate-900">Error Loading Exam</h3>
-        <p className="mt-2 text-sm text-slate-600">{error || 'Exam not found'}</p>
+        <h3 className="mt-4 font-display text-[20px] leading-tight tracking-[-0.015em] text-ink">Error Loading Exam</h3>
+        <p className="mt-2 text-sm text-body">{error || 'Exam not found'}</p>
         <button
           onClick={() => navigate('/dashboard/available-exams')}
-          className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90"
+          className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active"
         >
           Back to Available Exams
         </button>
@@ -209,51 +209,51 @@ export default function TakeExam() {
   if (showInstructions) {
     return (
       <div className="mx-auto max-w-4xl space-y-6">
-        <div className="rounded-2xl bg-white p-8 shadow-sm ring-1 ring-slate-200/80">
+        <div className="rounded-lg bg-canvas p-8 border border-hairline">
           <div className="text-center">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
               <span className="material-symbols-outlined text-3xl text-primary">quiz</span>
             </div>
-            <h1 className="mt-4 text-2xl font-bold text-slate-900">{exam.title}</h1>
-            <p className="mt-2 text-slate-600">{exam.course}</p>
+            <h1 className="mt-4 font-display text-[32px] leading-tight tracking-[-0.02em] text-ink">{exam.title}</h1>
+            <p className="mt-2 text-body">{exam.course}</p>
           </div>
 
           <div className="mt-8 grid gap-4 sm:grid-cols-3">
-            <div className="rounded-lg bg-slate-50 p-4 text-center">
-              <span className="material-symbols-outlined text-2xl text-slate-600">schedule</span>
-              <p className="mt-2 text-sm text-slate-600">Duration</p>
-              <p className="text-lg font-bold text-slate-900">{exam.duration} min</p>
+            <div className="rounded-lg bg-surface-soft p-4 text-center">
+              <span className="material-symbols-outlined text-2xl text-body">schedule</span>
+              <p className="mt-2 text-sm text-body">Duration</p>
+              <p className="font-display text-[20px] leading-tight tracking-[-0.015em] text-ink">{exam.duration} min</p>
             </div>
-            <div className="rounded-lg bg-slate-50 p-4 text-center">
-              <span className="material-symbols-outlined text-2xl text-slate-600">quiz</span>
-              <p className="mt-2 text-sm text-slate-600">Questions</p>
-              <p className="text-lg font-bold text-slate-900">{formattedQuestions.length}</p>
+            <div className="rounded-lg bg-surface-soft p-4 text-center">
+              <span className="material-symbols-outlined text-2xl text-body">quiz</span>
+              <p className="mt-2 text-sm text-body">Questions</p>
+              <p className="font-display text-[20px] leading-tight tracking-[-0.015em] text-ink">{formattedQuestions.length}</p>
             </div>
-            <div className="rounded-lg bg-slate-50 p-4 text-center">
-              <span className="material-symbols-outlined text-2xl text-slate-600">star</span>
-              <p className="mt-2 text-sm text-slate-600">Total Marks</p>
-              <p className="text-lg font-bold text-slate-900">{exam.totalMarks}</p>
+            <div className="rounded-lg bg-surface-soft p-4 text-center">
+              <span className="material-symbols-outlined text-2xl text-body">star</span>
+              <p className="mt-2 text-sm text-body">Total Marks</p>
+              <p className="font-display text-[20px] leading-tight tracking-[-0.015em] text-ink">{exam.totalMarks}</p>
             </div>
           </div>
 
           <div className="mt-8">
-            <h3 className="text-lg font-semibold text-slate-900">Instructions</h3>
+            <h3 className="font-display text-[20px] leading-tight tracking-[-0.015em] text-ink">Instructions</h3>
             <ul className="mt-4 space-y-3">
               {examInstructions.map((instruction, index) => (
                 <li key={index} className="flex items-start gap-3">
                   <span className="material-symbols-outlined mt-0.5 text-primary">
                     check_circle
                   </span>
-                  <span className="text-slate-700">{instruction}</span>
+                  <span className="text-body-strong">{instruction}</span>
                 </li>
               ))}
             </ul>
           </div>
 
-          <div className="mt-8 flex items-center justify-between rounded-lg bg-amber-50 p-4 ring-1 ring-amber-200">
+          <div className="mt-8 flex items-center justify-between rounded-lg bg-warning/10 p-4 border border-warning/30">
             <div className="flex items-center gap-3">
-              <span className="material-symbols-outlined text-amber-600">warning</span>
-              <span className="text-sm font-medium text-amber-900">
+              <span className="material-symbols-outlined text-[#7a5a0e]">warning</span>
+              <span className="text-sm font-medium text-[#7a5a0e]">
                 Once you start, the timer will begin and cannot be paused
               </span>
             </div>
@@ -262,13 +262,13 @@ export default function TakeExam() {
           <div className="mt-8 flex gap-3">
             <button
               onClick={() => navigate('/dashboard/available-exams')}
-              className="flex-1 rounded-lg bg-slate-100 px-6 py-3 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-200"
+              className="flex-1 rounded-lg bg-surface-card px-6 py-3 text-sm font-medium text-body-strong transition-colors hover:bg-hairline"
             >
               Cancel
             </button>
             <button
               onClick={() => setShowInstructions(false)}
-              className="flex-1 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-primary/90"
+              className="flex-1 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active"
             >
               Start Exam
             </button>
@@ -281,13 +281,13 @@ export default function TakeExam() {
   // If no questions available
   if (!currentQuestion) {
     return (
-      <div className="rounded-2xl bg-white p-8 shadow-sm ring-1 ring-slate-200/80 text-center">
-        <span className="material-symbols-outlined mx-auto text-6xl text-slate-300">quiz</span>
-        <h3 className="mt-4 text-lg font-semibold text-slate-900">No Questions Available</h3>
-        <p className="mt-2 text-sm text-slate-600">This exam doesn't have any questions yet.</p>
+      <div className="rounded-lg bg-canvas p-8 border border-hairline text-center">
+        <span className="material-symbols-outlined mx-auto text-6xl text-muted-soft">quiz</span>
+        <h3 className="mt-4 font-display text-[20px] leading-tight tracking-[-0.015em] text-ink">No Questions Available</h3>
+        <p className="mt-2 text-sm text-body">This exam doesn't have any questions yet.</p>
         <button
           onClick={() => navigate('/dashboard/available-exams')}
-          className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90"
+          className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active"
         >
           Back to Available Exams
         </button>
@@ -299,21 +299,21 @@ export default function TakeExam() {
   return (
     <div className="space-y-6">
       {/* Header with Timer */}
-      <div className="sticky top-0 z-10 rounded-2xl bg-white p-4 shadow-lg ring-1 ring-slate-200/80">
+      <div className="sticky top-0 z-10 rounded-lg border border-hairline bg-canvas/95 backdrop-blur-sm p-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-bold text-slate-900">{exam.title}</h1>
-            <p className="text-sm text-slate-600">
+            <h1 className="font-display text-[20px] leading-tight tracking-[-0.015em] text-ink">{exam.title}</h1>
+            <p className="text-sm text-body">
               Question {currentQuestionIndex + 1} of {formattedQuestions.length}
             </p>
           </div>
           <div className="flex items-center gap-4">
-            <div className="rounded-lg bg-slate-50 px-4 py-2">
+            <div className="rounded-lg bg-surface-soft px-4 py-2">
               <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-slate-600">schedule</span>
+                <span className="material-symbols-outlined text-body">schedule</span>
                 <span
                   className={`text-lg font-bold ${
-                    timeRemaining < 300 ? 'text-red-600' : 'text-slate-900'
+                    timeRemaining < 300 ? 'text-[#8a3636]' : 'text-ink'
                   }`}
                 >
                   {formatTime(timeRemaining)}
@@ -323,7 +323,7 @@ export default function TakeExam() {
             <button
               onClick={() => setShowSubmitConfirm(true)}
               disabled={isSubmitting}
-              className="rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
+              className="rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active disabled:opacity-50"
             >
               {isSubmitting ? 'Submitting...' : 'Submit Exam'}
             </button>
@@ -334,7 +334,7 @@ export default function TakeExam() {
       <div className="grid gap-6 lg:grid-cols-4">
         {/* Question Area */}
         <div className="lg:col-span-3">
-          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200/80">
+          <div className="rounded-lg bg-canvas p-6 border border-hairline">
             {/* Question Header */}
             <div className="mb-6 flex items-start justify-between">
               <div className="flex-1">
@@ -342,15 +342,15 @@ export default function TakeExam() {
                   <span className="inline-flex items-center rounded-lg bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
                     Question {currentQuestionIndex + 1}
                   </span>
-                  <span className="inline-flex items-center gap-1 text-sm text-slate-600">
+                  <span className="inline-flex items-center gap-1 text-sm text-body">
                     <span className="material-symbols-outlined text-base">star</span>
                     {currentQuestion.marks} marks
                   </span>
                   <span
                     className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${
                       currentQuestion.type === 'mcq'
-                        ? 'bg-sky-50 text-sky-700'
-                        : 'bg-emerald-50 text-emerald-700'
+                        ? 'bg-accent-teal/10 text-accent-teal'
+                        : 'bg-success/10 text-[#2f6e3d]'
                     }`}
                   >
                     {currentQuestion.type === 'mcq' ? 'Multiple Choice' : 'Short Answer'}
@@ -361,7 +361,7 @@ export default function TakeExam() {
 
             {/* Question */}
             <div className="mb-6">
-              <p className="text-lg text-slate-900">{currentQuestion.question}</p>
+              <p className="text-lg text-ink">{currentQuestion.question}</p>
             </div>
 
             {/* Answer Area */}
@@ -373,7 +373,7 @@ export default function TakeExam() {
                     className={`flex cursor-pointer items-center gap-3 rounded-lg border-2 p-4 transition-all ${
                       answers[currentQuestion.id] === option.id
                         ? 'border-primary bg-primary/5'
-                        : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                        : 'border-hairline hover:border-hairline hover:bg-surface-soft'
                     }`}
                   >
                     <input
@@ -386,7 +386,7 @@ export default function TakeExam() {
                       }
                       className="h-5 w-5 text-primary"
                     />
-                    <span className="flex-1 text-slate-900">{option.text}</span>
+                    <span className="flex-1 text-ink">{option.text}</span>
                   </label>
                 ))}
               </div>
@@ -399,9 +399,9 @@ export default function TakeExam() {
                   }
                   placeholder="Type your answer here..."
                   rows={8}
-                  className="w-full rounded-lg border-0 bg-slate-50 px-4 py-3 text-slate-900 ring-1 ring-slate-200/80 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-primary"
+                  className="w-full rounded-md border border-hairline bg-canvas px-3.5 py-3 text-ink placeholder:text-muted-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
-                <div className="mt-2 flex items-center justify-between text-sm text-slate-600">
+                <div className="mt-2 flex items-center justify-between text-sm text-body">
                   <span>
                     {currentQuestion.minWords && (
                       <>Minimum {currentQuestion.minWords} words recommended</>
@@ -422,7 +422,7 @@ export default function TakeExam() {
               <button
                 onClick={handlePrevious}
                 disabled={currentQuestionIndex === 0}
-                className="inline-flex items-center gap-2 rounded-lg bg-slate-100 px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-lg bg-surface-card px-4 py-2.5 text-sm font-medium text-body-strong transition-colors hover:bg-hairline disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <span className="material-symbols-outlined">chevron_left</span>
                 Previous
@@ -431,7 +431,7 @@ export default function TakeExam() {
                 <button
                   onClick={() => setShowSubmitConfirm(true)}
                   disabled={isSubmitting}
-                  className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active disabled:opacity-50"
                 >
                   {isSubmitting ? 'Submitting...' : 'Submit Exam'}
                   <span className="material-symbols-outlined">check</span>
@@ -439,7 +439,7 @@ export default function TakeExam() {
               ) : (
                 <button
                   onClick={handleNext}
-                  className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary/90"
+                  className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active"
                 >
                   Save & Next
                   <span className="material-symbols-outlined">chevron_right</span>
@@ -451,17 +451,17 @@ export default function TakeExam() {
 
         {/* Question Palette */}
         <div className="lg:col-span-1">
-          <div className="sticky top-24 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200/80">
-            <h3 className="mb-4 font-semibold text-slate-900">Question Palette</h3>
+          <div className="sticky top-24 rounded-lg bg-canvas p-4 border border-hairline">
+            <h3 className="mb-4 font-semibold text-ink">Question Palette</h3>
             
             <div className="mb-4 space-y-2 text-xs">
               <div className="flex items-center gap-2">
-                <div className="h-3 w-3 rounded bg-emerald-500" />
-                <span className="text-slate-600">Answered ({getAnsweredCount()})</span>
+                <div className="h-3 w-3 rounded bg-success" />
+                <span className="text-body">Answered ({getAnsweredCount()})</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="h-3 w-3 rounded bg-slate-200" />
-                <span className="text-slate-600">
+                <div className="h-3 w-3 rounded bg-hairline" />
+                <span className="text-body">
                   Not Answered ({formattedQuestions.length - getAnsweredCount()})
                 </span>
               </div>
@@ -474,10 +474,10 @@ export default function TakeExam() {
                   onClick={() => handleQuestionNavigate(index)}
                   className={`aspect-square rounded-lg text-sm font-medium transition-all ${
                     currentQuestionIndex === index
-                      ? 'bg-primary text-white ring-2 ring-primary ring-offset-2'
+                      ? 'bg-primary text-on-primary ring-2 ring-primary ring-offset-2'
                       : getQuestionStatus(q.id) === 'answered'
-                      ? 'bg-emerald-500 text-white hover:bg-emerald-600'
-                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      ? 'bg-success text-on-primary hover:bg-success/90'
+                      : 'bg-surface-card text-body-strong hover:bg-hairline'
                   }`}
                 >
                   {index + 1}
@@ -485,8 +485,8 @@ export default function TakeExam() {
               ))}
             </div>
 
-            <div className="mt-4 rounded-lg bg-amber-50 p-3 ring-1 ring-amber-200">
-              <p className="text-xs text-amber-900">
+            <div className="mt-4 rounded-lg bg-warning/10 p-3 border border-warning/30">
+              <p className="text-xs text-[#7a5a0e]">
                 Make sure to answer all questions before submitting
               </p>
             </div>
@@ -497,15 +497,15 @@ export default function TakeExam() {
       {/* Submit Confirmation Modal */}
       {showSubmitConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="max-w-md rounded-2xl bg-white p-6 shadow-xl">
+          <div className="max-w-md rounded-lg bg-canvas p-6 shadow-xl">
             <div className="text-center">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-100">
-                <span className="material-symbols-outlined text-2xl text-amber-600">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-warning/15">
+                <span className="material-symbols-outlined text-2xl text-[#7a5a0e]">
                   warning
                 </span>
               </div>
-              <h3 className="mt-4 text-lg font-semibold text-slate-900">Submit Exam?</h3>
-              <p className="mt-2 text-sm text-slate-600">
+              <h3 className="mt-4 font-display text-[20px] leading-tight tracking-[-0.015em] text-ink">Submit Exam?</h3>
+              <p className="mt-2 text-sm text-body">
                 You have answered {getAnsweredCount()} out of {formattedQuestions.length}{' '}
                 questions. Once submitted, you cannot change your answers.
               </p>
@@ -514,14 +514,14 @@ export default function TakeExam() {
               <button
                 onClick={() => setShowSubmitConfirm(false)}
                 disabled={isSubmitting}
-                className="flex-1 rounded-lg bg-slate-100 px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-200 disabled:opacity-50"
+                className="flex-1 rounded-lg bg-surface-card px-4 py-2.5 text-sm font-medium text-body-strong transition-colors hover:bg-hairline disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className="flex-1 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
+                className="inline-flex h-10 flex-1 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active disabled:opacity-60"
               >
                 {isSubmitting ? 'Submitting...' : 'Submit'}
               </button>

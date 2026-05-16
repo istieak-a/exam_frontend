@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { ExamCard, ExamCardSkeleton } from '../../components/dashboard';
 import { getAvailableExams } from '../../services/examService';
 
@@ -16,7 +16,7 @@ export default function AvailableExams() {
       try {
         setIsLoading(true);
         const data = await getAvailableExams();
-        setExams(data);
+        setExams(Array.isArray(data) ? data : data?.content || []);
       } catch (err) {
         console.error('Failed to fetch available exams:', err);
       } finally {
@@ -29,7 +29,8 @@ export default function AvailableExams() {
 
   const filteredExams = exams.filter((exam) => {
     const course = exam.course || exam.subject || '';
-    const matchesSearch = exam.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const matchesSearch =
+      exam.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       course.toLowerCase().includes(searchQuery.toLowerCase());
     const status = exam.status?.toLowerCase();
     const matchesStatus = filterStatus === 'all' || status === filterStatus;
@@ -37,78 +38,71 @@ export default function AvailableExams() {
     return matchesSearch && matchesStatus && matchesDifficulty;
   });
 
-  if (isLoading) {
-    return <PageSkeleton />;
-  }
+  if (isLoading) return <PageSkeleton />;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Available Exams</h1>
-          <p className="mt-1 text-sm text-slate-600">
-            {filteredExams.length} exam{filteredExams.length !== 1 ? 's' : ''} available to take
-          </p>
-        </div>
-      </div>
+    <div className="space-y-8">
+      <header className="border-b border-hairline pb-6">
+        <p className="text-xs uppercase tracking-[0.15em] text-muted">Catalog</p>
+        <h1 className="mt-2 font-display text-[36px] leading-tight tracking-[-0.02em] text-ink md:text-[42px]">
+          Available exams
+        </h1>
+        <p className="mt-2 text-sm text-muted">
+          {filteredExams.length} exam{filteredExams.length !== 1 ? 's' : ''} ready to take
+        </p>
+      </header>
 
-      {/* Filters */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        {/* Search */}
         <div className="relative flex-1">
-          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-muted">
             search
           </span>
           <input
             type="text"
-            placeholder="Search exams..."
+            placeholder="Search by title or course…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-lg border-0 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 shadow-sm ring-1 ring-slate-200/80 placeholder:text-slate-400 focus:ring-2 focus:ring-primary"
+            className="h-10 w-full rounded-md border border-hairline bg-canvas pl-9 pr-3 text-sm text-ink placeholder:text-muted-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>
 
-        {/* Status Filter */}
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
-          className="rounded-lg border-0 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm ring-1 ring-slate-200/80 focus:ring-2 focus:ring-primary"
+          className="h-10 rounded-md border border-hairline bg-canvas px-3 text-sm text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
         >
-          <option value="all">All Status</option>
+          <option value="all">All statuses</option>
           <option value="published">Published</option>
           <option value="active">Active</option>
           <option value="completed">Completed</option>
         </select>
 
-        {/* Difficulty Filter */}
         <select
           value={filterDifficulty}
           onChange={(e) => setFilterDifficulty(e.target.value)}
-          className="rounded-lg border-0 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm ring-1 ring-slate-200/80 focus:ring-2 focus:ring-primary"
+          className="h-10 rounded-md border border-hairline bg-canvas px-3 text-sm text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
         >
-          <option value="all">All Difficulty</option>
+          <option value="all">All difficulties</option>
           <option value="easy">Easy</option>
           <option value="medium">Medium</option>
           <option value="hard">Hard</option>
         </select>
       </div>
 
-      {/* Exams Grid */}
       {filteredExams.length > 0 ? (
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-5 lg:grid-cols-2">
           {filteredExams.map((exam) => (
             <ExamCard key={exam.id} exam={exam} role="student" />
           ))}
         </div>
       ) : (
-        <div className="rounded-2xl bg-white p-12 text-center shadow-sm ring-1 ring-slate-200/80">
-          <span className="material-symbols-outlined mx-auto text-6xl text-slate-300">
-            search_off
-          </span>
-          <h3 className="mt-4 text-lg font-semibold text-slate-900">No exams found</h3>
-          <p className="mt-2 text-sm text-slate-600">
-            Try adjusting your search or filter criteria
+        <div className="rounded-lg border border-dashed border-hairline bg-surface-soft p-12 text-center">
+          <span className="material-symbols-outlined text-[40px] text-muted">search_off</span>
+          <h3 className="mt-3 font-display text-[22px] leading-tight text-ink">
+            Nothing matches that.
+          </h3>
+          <p className="mt-2 text-sm text-muted">
+            Try a different search term or relax the filters.
           </p>
         </div>
       )}
@@ -118,17 +112,18 @@ export default function AvailableExams() {
 
 function PageSkeleton() {
   return (
-    <div className="space-y-6">
-      <div>
-        <div className="h-8 w-48 rounded bg-slate-200 animate-pulse" />
-        <div className="mt-2 h-4 w-64 rounded bg-slate-200 animate-pulse" />
+    <div className="space-y-8">
+      <div className="space-y-2 border-b border-hairline pb-6">
+        <div className="h-3 w-20 animate-pulse rounded bg-hairline" />
+        <div className="h-10 w-64 animate-pulse rounded bg-hairline" />
+        <div className="h-3 w-40 animate-pulse rounded bg-hairline" />
       </div>
       <div className="flex gap-3">
-        <div className="h-11 flex-1 rounded-lg bg-slate-200 animate-pulse" />
-        <div className="h-11 w-32 rounded-lg bg-slate-200 animate-pulse" />
-        <div className="h-11 w-32 rounded-lg bg-slate-200 animate-pulse" />
+        <div className="h-10 flex-1 animate-pulse rounded-md bg-hairline" />
+        <div className="h-10 w-32 animate-pulse rounded-md bg-hairline" />
+        <div className="h-10 w-32 animate-pulse rounded-md bg-hairline" />
       </div>
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-5 lg:grid-cols-2">
         {[...Array(4)].map((_, i) => (
           <ExamCardSkeleton key={i} />
         ))}

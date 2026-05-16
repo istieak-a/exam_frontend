@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { Badge } from '../ui';
 
 export default function Navbar({ onMenuClick }) {
   const { user, isTeacher, logout } = useAuth();
@@ -10,14 +11,12 @@ export default function Navbar({ onMenuClick }) {
   const accountRef = useRef(null);
   const navigate = useNavigate();
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (accountRef.current && !accountRef.current.contains(event.target)) {
         setAccountOpen(false);
       }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
@@ -38,103 +37,84 @@ export default function Navbar({ onMenuClick }) {
   };
 
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/80 backdrop-blur-md">
-      <div className="flex h-14 sm:h-16 items-center justify-between px-4 sm:px-6">
-        {/* Left: Menu Button & Page Title */}
+    <header className="sticky top-0 z-30 border-b border-hairline-soft bg-canvas/95 backdrop-blur-sm">
+      <div className="flex h-16 items-center justify-between px-6 sm:px-8 lg:px-10">
         <div className="flex items-center gap-3">
-          {/* Mobile Menu Button */}
           <button
             onClick={onMenuClick}
-            className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600 transition-colors hover:bg-slate-200 lg:hidden"
+            className="flex h-9 w-9 items-center justify-center rounded-md border border-hairline text-ink transition-colors hover:bg-surface-soft lg:hidden"
+            aria-label="Open menu"
           >
-            <span className="material-symbols-outlined text-xl">menu</span>
+            <span className="material-symbols-outlined text-[20px]">menu</span>
           </button>
 
-          {/* Page Title */}
           <div className="hidden sm:block">
-            <h1 className="text-lg font-bold text-slate-800">
-              {isTeacher ? 'Teacher Dashboard' : 'Student Dashboard'}
+            <h1 className="font-display text-[20px] font-medium leading-tight tracking-tight text-ink">
+              {isTeacher ? 'Teacher workspace' : 'Student workspace'}
             </h1>
-            <p className="text-xs text-slate-500">Welcome back, {user?.name?.split(' ')[0] || 'User'}!</p>
+            <p className="text-xs text-muted">
+              Welcome back, {user?.name?.split(' ')[0] || 'there'}.
+            </p>
           </div>
         </div>
 
-        {/* Right: Role Badge, Notifications, Account */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Role Badge */}
-          <div
-            className={`hidden sm:flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium ${
-              isTeacher
-                ? 'bg-primary/10 text-primary ring-1 ring-primary/20'
-                : 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200'
-            }`}
-          >
-            <span className="material-symbols-outlined text-base">
-              {isTeacher ? 'school' : 'person'}
-            </span>
-            <span className="hidden md:inline">{isTeacher ? 'Teacher' : 'Student'}</span>
-          </div>
+          <span className="hidden sm:inline-flex">
+            <Badge variant={isTeacher ? 'coral-soft' : 'info'} size="sm">
+              <span className="material-symbols-outlined text-[14px]">
+                {isTeacher ? 'school' : 'person'}
+              </span>
+              {isTeacher ? 'Teacher' : 'Student'}
+            </Badge>
+          </span>
 
-          {/* Notifications */}
-          <button className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600 transition-colors hover:bg-slate-200">
-            <span className="material-symbols-outlined text-xl">notifications</span>
-            {/* Notification Badge */}
-            <span className="absolute right-1 top-1 flex h-2 w-2">
+          <button className="relative flex h-9 w-9 items-center justify-center rounded-md border border-hairline text-ink transition-colors hover:bg-surface-soft">
+            <span className="material-symbols-outlined text-[20px]">notifications</span>
+            <span className="absolute right-1.5 top-1.5 flex h-1.5 w-1.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75"></span>
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-primary"></span>
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary"></span>
             </span>
           </button>
 
-          {/* Account Dropdown */}
           <div className="relative" ref={accountRef}>
             <button
               onClick={() => setAccountOpen(!accountOpen)}
-              className="flex items-center gap-2 rounded-lg bg-slate-100 p-1.5 pr-3 transition-colors hover:bg-slate-200"
+              className="flex items-center gap-2 rounded-md border border-hairline bg-canvas px-2 py-1.5 transition-colors hover:bg-surface-soft"
             >
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-xs font-bold text-white">
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/15 text-xs font-medium text-primary">
                 {getInitials(user?.name)}
               </div>
-              <span className="hidden text-sm font-medium text-slate-700 sm:inline">
+              <span className="hidden text-sm font-medium text-ink sm:inline">
                 {user?.name?.split(' ')[0] || 'User'}
               </span>
-              <span className="material-symbols-outlined text-lg text-slate-400">
+              <span className="material-symbols-outlined text-[18px] text-muted">
                 {accountOpen ? 'expand_less' : 'expand_more'}
               </span>
             </button>
 
-            {/* Dropdown Menu */}
             {accountOpen && (
-              <div className="absolute right-0 mt-2 w-64 rounded-xl bg-white p-2 shadow-lg ring-1 ring-slate-200/80">
-                {/* User Info */}
-                <div className="mb-2 rounded-lg bg-slate-50 p-3">
-                  <p className="text-sm font-semibold text-slate-800">{user?.name}</p>
-                  <p className="text-xs text-slate-500">{user?.email}</p>
-                  <div className="mt-2 flex items-center gap-2">
-                    <span
-                      className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ${
-                        isTeacher
-                          ? 'bg-primary/10 text-primary'
-                          : 'bg-emerald-50 text-emerald-600'
-                      }`}
-                    >
-                      <span className="material-symbols-outlined text-xs">
-                        {isTeacher ? 'school' : 'person'}
-                      </span>
+              <div className="absolute right-0 mt-2 w-64 rounded-lg border border-hairline bg-canvas p-2 shadow-lg">
+                <div className="mb-2 rounded-md bg-surface-soft p-3">
+                  <p className="text-sm font-medium text-ink">{user?.name}</p>
+                  <p className="text-xs text-muted">{user?.email}</p>
+                  <div className="mt-2">
+                    <Badge variant={isTeacher ? 'coral-soft' : 'info'} size="sm">
                       {isTeacher ? 'Teacher' : 'Student'}
-                    </span>
+                    </Badge>
                   </div>
                 </div>
 
-                {/* Menu Items */}
                 <button
                   onClick={() => {
                     navigate('/dashboard/profile');
                     setAccountOpen(false);
                   }}
-                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-50"
+                  className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-body transition-colors hover:bg-surface-soft hover:text-ink"
                 >
-                  <span className="material-symbols-outlined text-lg">account_circle</span>
-                  My Profile
+                  <span className="material-symbols-outlined text-[18px] text-muted">
+                    account_circle
+                  </span>
+                  Profile
                 </button>
 
                 <button
@@ -142,21 +122,20 @@ export default function Navbar({ onMenuClick }) {
                     navigate('/dashboard/support');
                     setAccountOpen(false);
                   }}
-                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-50"
+                  className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-body transition-colors hover:bg-surface-soft hover:text-ink"
                 >
-                  <span className="material-symbols-outlined text-lg">help</span>
-                  Help & Support
+                  <span className="material-symbols-outlined text-[18px] text-muted">help</span>
+                  Help & support
                 </button>
 
+                <div className="my-1 h-px bg-hairline-soft" />
 
-
-                {/* Logout */}
                 <button
                   onClick={handleLogout}
-                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-red-600 transition-colors hover:bg-red-50"
+                  className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-error transition-colors hover:bg-error/10"
                 >
-                  <span className="material-symbols-outlined text-lg">logout</span>
-                  Logout
+                  <span className="material-symbols-outlined text-[18px]">logout</span>
+                  Sign out
                 </button>
               </div>
             )}

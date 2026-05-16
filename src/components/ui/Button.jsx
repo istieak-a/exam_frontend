@@ -1,29 +1,45 @@
-export function Button({ 
-  children, 
-  variant = 'primary', 
-  size = 'md', 
-  className = '', 
-  ...props 
+export function Button({
+  children,
+  variant = 'primary',
+  size = 'md',
+  className = '',
+  type = 'button',
+  ...props
 }) {
-  const baseStyles = 'inline-flex items-center justify-center font-bold rounded-xl transition-all duration-300 cursor-pointer';
-  
+  const base =
+    'inline-flex items-center justify-center gap-2 font-medium rounded-md transition-colors duration-150 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas';
+
   const variants = {
-    primary: 'bg-primary text-white hover:opacity-90 hover:scale-105 shadow-lg shadow-primary/25',
-    secondary: 'bg-white border border-border-light text-text-light-primary hover:bg-gray-50 hover:border-primary/30',
-    ghost: 'bg-primary/10 text-primary hover:bg-primary/20',
-    outline: 'border-2 border-primary text-primary hover:bg-primary hover:text-white',
-    accent: 'bg-accent text-white hover:opacity-90 hover:scale-105 shadow-lg shadow-accent/25',
+    primary:
+      'bg-primary text-on-primary hover:bg-primary-active active:bg-primary-active disabled:bg-primary-disabled disabled:text-muted',
+    secondary:
+      'bg-canvas text-ink border border-hairline hover:bg-surface-soft active:bg-surface-card',
+    'secondary-dark':
+      'bg-surface-dark-elevated text-on-dark border border-transparent hover:bg-surface-dark-soft',
+    'secondary-on-coral':
+      'bg-canvas text-ink hover:bg-surface-soft active:bg-surface-card',
+    ghost: 'bg-transparent text-ink hover:bg-surface-soft',
+    link:
+      'bg-transparent text-primary hover:text-primary-active underline-offset-4 hover:underline px-0',
+    icon:
+      'bg-canvas text-ink border border-hairline hover:bg-surface-soft rounded-full',
+    outline:
+      'bg-transparent text-ink border border-ink hover:bg-ink hover:text-on-primary',
+    accent:
+      'bg-accent-teal text-on-primary hover:opacity-90 active:opacity-100',
   };
 
   const sizes = {
-    sm: 'h-10 px-4 text-sm',
-    md: 'h-12 px-6 text-base',
-    lg: 'h-14 px-8 text-lg',
+    sm: 'h-9 px-4 text-sm',
+    md: 'h-10 px-5 text-sm',
+    lg: 'h-11 px-6 text-base',
+    icon: 'h-9 w-9 p-0',
   };
 
   return (
     <button
-      className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${className}`}
+      type={type}
+      className={`${base} ${variants[variant] || variants.primary} ${sizes[size] || sizes.md} ${className}`}
       {...props}
     >
       {children}

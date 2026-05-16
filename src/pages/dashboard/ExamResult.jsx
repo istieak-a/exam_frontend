@@ -514,20 +514,20 @@ export default function ExamResult() {
   // Handle errors
   if (error) {
     return (
-      <div className="rounded-2xl bg-white p-8 shadow-sm ring-1 ring-slate-200/80 text-center">
+      <div className="rounded-lg bg-canvas p-8 border border-hairline text-center">
         <span className="material-symbols-outlined mx-auto text-6xl text-red-300">error</span>
-        <h3 className="mt-4 text-lg font-semibold text-slate-900">Error Loading Results</h3>
-        <p className="mt-2 text-sm text-slate-600">{error}</p>
+        <h3 className="mt-4 font-display text-[20px] leading-tight tracking-[-0.015em] text-ink">Error Loading Results</h3>
+        <p className="mt-2 text-sm text-body">{error}</p>
         <div className="mt-4 flex gap-3 justify-center">
           <button
             onClick={() => navigate('/dashboard/my-exams')}
-            className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-200"
+            className="rounded-lg bg-surface-card px-4 py-2 text-sm font-medium text-body-strong transition-colors hover:bg-hairline"
           >
             Back to My Exams
           </button>
           <button
             onClick={() => window.location.reload()}
-            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90"
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active"
           >
             Try Again
           </button>
@@ -539,22 +539,22 @@ export default function ExamResult() {
   // Handle case when no submission is found
   if (!submission) {
     return (
-      <div className="rounded-2xl bg-white p-8 shadow-sm ring-1 ring-slate-200/80 text-center">
+      <div className="rounded-lg bg-canvas p-8 border border-hairline text-center">
         <span className="material-symbols-outlined mx-auto text-6xl text-blue-300">pending</span>
-        <h3 className="mt-4 text-lg font-semibold text-slate-900">Exam Submitted Successfully</h3>
-        <p className="mt-2 text-sm text-slate-600">
+        <h3 className="mt-4 font-display text-[20px] leading-tight tracking-[-0.015em] text-ink">Exam Submitted Successfully</h3>
+        <p className="mt-2 text-sm text-body">
           Your exam has been submitted successfully. Results will be available once your teacher completes the grading process.
         </p>
         <div className="mt-4 flex gap-3 justify-center">
           <button
             onClick={() => navigate('/dashboard/available-exams')}
-            className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-200"
+            className="rounded-lg bg-surface-card px-4 py-2 text-sm font-medium text-body-strong transition-colors hover:bg-hairline"
           >
             Back to Exams
           </button>
           <button
             onClick={() => navigate('/dashboard')}
-            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90"
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active"
           >
             Go to Dashboard
           </button>
@@ -605,37 +605,37 @@ export default function ExamResult() {
   return (
     <div className="space-y-4">
       {/* Result Header */}
-      <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200/80">
+      <div className="rounded-lg bg-canvas p-6 border border-hairline">
         <div className="flex items-start justify-between gap-6">
           {/* Left: Icon and Title */}
           <div className="flex items-start gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary/10">
               {isPending ? (
-                <span className="material-symbols-outlined text-2xl text-amber-600">schedule</span>
+                <span className="material-symbols-outlined text-2xl text-[#7a5a0e]">schedule</span>
               ) : (
-                <span className="material-symbols-outlined text-2xl text-emerald-600">verified</span>
+                <span className="material-symbols-outlined text-2xl text-[#2f6e3d]">verified</span>
               )}
             </div>
             <div>
-              <h1 className="text-xl font-bold text-slate-900">
+              <h1 className="font-display text-[24px] leading-tight tracking-[-0.015em] text-ink">
                 {isGraded ? 'Exam Results' : isInReview ? 'Under Review' : 'Exam Submitted'}
               </h1>
-              <p className="mt-0.5 text-sm text-slate-600">{exam?.title || submission.examTitle || 'Exam'}</p>
-              <p className="text-xs text-slate-500">{exam?.course || 'Course'}</p>
+              <p className="mt-0.5 text-sm text-body">{exam?.title || submission.examTitle || 'Exam'}</p>
+              <p className="text-xs text-muted">{exam?.course || 'Course'}</p>
             </div>
           </div>
 
           {/* Right: Score Display */}
           {isGraded && submission.totalScore !== undefined && submission.maxScore !== undefined && (
             <div className="shrink-0 text-right">
-              <p className="text-xs font-medium text-slate-500">Score</p>
+              <p className="text-xs font-medium text-muted">Score</p>
               <div className="mt-1 flex items-baseline justify-end gap-0.5">
-                <span className="text-3xl font-bold text-slate-900">{submission.totalScore}</span>
-                <span className="text-lg font-medium text-slate-400">/</span>
-                <span className="text-lg font-semibold text-slate-600">{submission.maxScore}</span>
+                <span className="font-display text-[40px] leading-tight tracking-[-0.02em] text-ink">{submission.totalScore}</span>
+                <span className="text-lg font-medium text-muted-soft">/</span>
+                <span className="text-lg font-semibold text-body">{submission.maxScore}</span>
               </div>
               {submission.percentage && (
-                <p className="text-xs text-slate-500">{submission.percentage}%</p>
+                <p className="text-xs text-muted">{submission.percentage}%</p>
               )}
             </div>
           )}
@@ -643,38 +643,38 @@ export default function ExamResult() {
         
         {/* Stats */}
         <div className="mt-4 grid gap-3 sm:grid-cols-3">
-          <div className="flex items-center gap-3 rounded-lg bg-slate-50 px-3 py-2.5">
-            <span className="material-symbols-outlined text-lg text-slate-400">quiz</span>
+          <div className="flex items-center gap-3 rounded-lg bg-surface-soft px-3 py-2.5">
+            <span className="material-symbols-outlined text-lg text-muted-soft">quiz</span>
             <div>
-              <p className="text-xs text-slate-500">Questions</p>
-              <p className="text-sm font-bold text-slate-900">{exam?.questions?.length || Object.keys(submission.answers || {}).length || 0}</p>
+              <p className="text-xs text-muted">Questions</p>
+              <p className="text-sm font-bold text-ink">{exam?.questions?.length || Object.keys(submission.answers || {}).length || 0}</p>
             </div>
           </div>
-          <div className="flex items-center gap-3 rounded-lg bg-slate-50 px-3 py-2.5">
-            <span className="material-symbols-outlined text-lg text-slate-400">schedule</span>
+          <div className="flex items-center gap-3 rounded-lg bg-surface-soft px-3 py-2.5">
+            <span className="material-symbols-outlined text-lg text-muted-soft">schedule</span>
             <div>
-              <p className="text-xs text-slate-500">Duration</p>
-              <p className="text-sm font-bold text-slate-900">{exam?.duration ? `${exam.duration} min` : 'N/A'}</p>
+              <p className="text-xs text-muted">Duration</p>
+              <p className="text-sm font-bold text-ink">{exam?.duration ? `${exam.duration} min` : 'N/A'}</p>
             </div>
           </div>
-          <div className="flex items-center gap-3 rounded-lg bg-slate-50 px-3 py-2.5">
-            <span className="material-symbols-outlined text-lg text-slate-400">
+          <div className="flex items-center gap-3 rounded-lg bg-surface-soft px-3 py-2.5">
+            <span className="material-symbols-outlined text-lg text-muted-soft">
               {examType === 'mcq' ? 'radio_button_checked' : 'edit_note'}
             </span>
             <div>
-              <p className="text-xs text-slate-500">Type</p>
-              <p className="text-sm font-bold text-slate-900">{examType === 'mcq' ? 'MCQ' : examType === 'cq' ? 'Descriptive' : examType.toUpperCase()}</p>
+              <p className="text-xs text-muted">Type</p>
+              <p className="text-sm font-bold text-ink">{examType === 'mcq' ? 'MCQ' : examType === 'cq' ? 'Descriptive' : examType.toUpperCase()}</p>
             </div>
           </div>
         </div>
 
         {isPending && (
-          <div className="mt-4 rounded-lg bg-amber-50 p-3 ring-1 ring-amber-200">
+          <div className="mt-4 rounded-lg bg-warning/10 p-3 border border-warning/30">
             <div className="flex items-start gap-2">
-              <span className="material-symbols-outlined text-base text-amber-600">info</span>
+              <span className="material-symbols-outlined text-base text-[#7a5a0e]">info</span>
               <div className="flex-1">
-                <p className="text-sm font-medium text-amber-900">Awaiting Teacher Review</p>
-                <p className="mt-0.5 text-xs text-amber-700">
+                <p className="text-sm font-medium text-[#7a5a0e]">Awaiting Teacher Review</p>
+                <p className="mt-0.5 text-xs text-[#7a5a0e]">
                   Your answers are being reviewed. Results will be available once grading is complete.
                 </p>
               </div>
@@ -685,35 +685,35 @@ export default function ExamResult() {
 
       {/* Performance Summary - Only show for graded exams */}
       {isGraded && (
-      <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200/80">
-        <h2 className="text-base font-semibold text-slate-900">Exam Summary</h2>
+      <div className="rounded-lg bg-canvas p-5 border border-hairline">
+        <h2 className="text-base font-semibold text-ink">Exam Summary</h2>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           {submission.totalScore !== undefined && submission.maxScore !== undefined && (
-            <div className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-blue-50 to-blue-100/50 p-4 ring-1 ring-blue-200/50">
+            <div className="group relative overflow-hidden rounded-lg border border-hairline bg-canvas p-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-500 text-white">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary text-on-primary">
                   <span className="material-symbols-outlined text-xl">grade</span>
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-blue-700">Total Score</p>
-                  <p className="text-2xl font-bold text-blue-900">{submission.totalScore}/{submission.maxScore}</p>
+                  <p className="text-xs font-medium text-primary">Total Score</p>
+                  <p className="font-display text-[28px] leading-none text-ink">{submission.totalScore}/{submission.maxScore}</p>
                   {submission.percentage && (
-                    <p className="text-xs text-blue-600">{submission.percentage}%</p>
+                    <p className="text-xs text-primary">{submission.percentage}%</p>
                   )}
                 </div>
               </div>
             </div>
           )}
-          <div className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-slate-50 to-slate-100/50 p-4 ring-1 ring-slate-200/50">
+          <div className="group relative overflow-hidden rounded-lg border border-hairline bg-surface-soft p-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-500 text-white">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-surface-soft text-ink">
                 <span className="material-symbols-outlined text-xl">
                   {submission.status === 'graded' ? 'verified' : 'schedule'}
                 </span>
               </div>
               <div>
-                <p className="text-xs font-medium text-slate-700">Status</p>
-                <p className="text-sm font-bold text-slate-900 capitalize">{submission.status.replace('-', ' ')}</p>
+                <p className="text-xs font-medium text-body-strong">Status</p>
+                <p className="text-sm font-bold text-ink capitalize">{submission.status.replace('-', ' ')}</p>
               </div>
             </div>
           </div>
@@ -722,20 +722,20 @@ export default function ExamResult() {
       )}
 
       {/* Questions & Answers */}
-      <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200/80">
+      <div className="rounded-lg bg-canvas p-6 border border-hairline">
         <div className="flex items-center justify-between gap-4">
-          <h2 className="text-base font-semibold text-slate-900">Questions & Answers</h2>
+          <h2 className="text-base font-semibold text-ink">Questions & Answers</h2>
           <button
             type="button"
             onClick={() => setShowAnswers((prev) => !prev)}
-            className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-200"
+            className="rounded-lg bg-surface-card px-3 py-1.5 text-xs font-medium text-body-strong transition-colors hover:bg-hairline"
           >
             {showAnswers ? 'Hide Answers' : 'Show Answers'}
           </button>
         </div>
 
         {fallbackQuestions.length === 0 ? (
-          <p className="mt-3 text-sm text-slate-600">No questions found for this submission.</p>
+          <p className="mt-3 text-sm text-body">No questions found for this submission.</p>
         ) : (
           <div className="mt-4 space-y-4">
             {fallbackQuestions.map((question, index) => {
@@ -751,18 +751,18 @@ export default function ExamResult() {
                 : null;
 
               return (
-                <div key={question.id || index} className="rounded-xl border border-slate-200 p-4">
+                <div key={question.id || index} className="rounded-xl border border-hairline p-4">
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="text-sm font-semibold text-slate-900">
+                      <p className="text-sm font-semibold text-ink">
                         Q{index + 1}. {question.questionText || question.question || 'Question'}
                       </p>
                       {maxMarks != null && (
-                        <p className="mt-1 text-xs text-slate-500">Marks: {maxMarks}</p>
+                        <p className="mt-1 text-xs text-muted">Marks: {maxMarks}</p>
                       )}
                     </div>
                     {maxMarks != null && (
-                      <div className="rounded-lg bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">
+                      <div className="rounded-lg bg-surface-soft px-3 py-1.5 text-xs font-semibold text-body-strong">
                         {questionType === 'mcq'
                           ? (mcqAwarded != null ? `${mcqAwarded}/${maxMarks}` : 'Score N/A')
                           : (awardedMarks != null ? `${awardedMarks}/${maxMarks}` : isGraded ? 'Score N/A' : 'Not graded')}
@@ -786,17 +786,17 @@ export default function ExamResult() {
                             key={`${question.id || index}-opt-${optIndex}`}
                             className={`rounded-lg border px-3 py-2 text-sm ${
                               isCorrect
-                                ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+                                ? 'border-success/25 bg-success/10 text-emerald-900'
                                 : isSelected
-                                  ? 'border-blue-200 bg-blue-50 text-blue-900'
-                                  : 'border-slate-200 bg-white text-slate-700'
+                                  ? 'border-primary/20 bg-primary/10 text-ink'
+                                  : 'border-hairline bg-canvas text-body-strong'
                             }`}
                           >
                             <div className="flex items-center justify-between gap-2">
                               <span>{optionText}</span>
                               <div className="flex items-center gap-2 text-xs font-medium">
-                                {isSelected && <span className="text-blue-700">Your answer</span>}
-                                {showAnswers && isCorrect && <span className="text-emerald-700">Correct</span>}
+                                {isSelected && <span className="text-primary">Your answer</span>}
+                                {showAnswers && isCorrect && <span className="text-[#2f6e3d]">Correct</span>}
                               </div>
                             </div>
                           </div>
@@ -807,12 +807,12 @@ export default function ExamResult() {
 
                   {questionType !== 'mcq' && (
                     <div className="mt-3">
-                      <p className="text-xs font-medium text-slate-500">Your Answer</p>
-                      <div className="mt-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                      <p className="text-xs font-medium text-muted">Your Answer</p>
+                      <div className="mt-1 rounded-lg border border-hairline bg-surface-soft px-3 py-2 text-sm text-body-strong">
                         {studentAnswer || 'No answer submitted.'}
                       </div>
                       {showAnswers && awardedMarks != null && (
-                        <p className="mt-2 text-xs text-slate-600">Marks Awarded: {awardedMarks}{maxMarks != null ? `/${maxMarks}` : ''}</p>
+                        <p className="mt-2 text-xs text-body">Marks Awarded: {awardedMarks}{maxMarks != null ? `/${maxMarks}` : ''}</p>
                       )}
                     </div>
                   )}
@@ -824,15 +824,15 @@ export default function ExamResult() {
       </div>
 
       {/* Status Message */}
-      <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200/80">
+      <div className="rounded-lg bg-canvas p-6 border border-hairline">
         <div className="text-center">
           {isPending && (
             <>
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-blue-100">
-                <span className="material-symbols-outlined text-3xl text-blue-600">schedule</span>
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/15">
+                <span className="material-symbols-outlined text-3xl text-primary">schedule</span>
               </div>
-              <h3 className="mt-4 text-lg font-semibold text-slate-900">Exam Submitted Successfully</h3>
-              <p className="mt-2 text-sm text-slate-600">
+              <h3 className="mt-4 font-display text-[20px] leading-tight tracking-[-0.015em] text-ink">Exam Submitted Successfully</h3>
+              <p className="mt-2 text-sm text-body">
                 Your answers have been submitted and are being reviewed. 
                 {submission.examType === 'mcq' 
                   ? ' MCQ results will be available shortly.' 
@@ -843,11 +843,11 @@ export default function ExamResult() {
           
           {isGraded && (
             <>
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-                <span className="material-symbols-outlined text-3xl text-green-600">verified</span>
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-success/15">
+                <span className="material-symbols-outlined text-3xl text-[#2f6e3d]">verified</span>
               </div>
-              <h3 className="mt-4 text-lg font-semibold text-slate-900">Results Available</h3>
-              <p className="mt-2 text-sm text-slate-600">
+              <h3 className="mt-4 font-display text-[20px] leading-tight tracking-[-0.015em] text-ink">Results Available</h3>
+              <p className="mt-2 text-sm text-body">
                 Your exam has been graded. Check your score above for details.
               </p>
             </>
@@ -855,11 +855,11 @@ export default function ExamResult() {
           
           {!isPending && !isGraded && (
             <>
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-amber-100">
-                <span className="material-symbols-outlined text-3xl text-amber-600">pending</span>
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-warning/15">
+                <span className="material-symbols-outlined text-3xl text-[#7a5a0e]">pending</span>
               </div>
-              <h3 className="mt-4 text-lg font-semibold text-slate-900">Under Review</h3>
-              <p className="mt-2 text-sm text-slate-600">
+              <h3 className="mt-4 font-display text-[20px] leading-tight tracking-[-0.015em] text-ink">Under Review</h3>
+              <p className="mt-2 text-sm text-body">
                 Your exam is currently being reviewed. Results will be available soon.
               </p>
             </>
@@ -871,14 +871,14 @@ export default function ExamResult() {
       <div className="flex flex-wrap gap-2 justify-center">
         <button
           onClick={() => navigate('/dashboard')}
-          className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary/90"
+          className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active"
         >
           <span className="material-symbols-outlined text-lg">dashboard</span>
           Go to Dashboard
         </button>
         <button
           onClick={() => navigate('/dashboard/available-exams')}
-          className="inline-flex items-center gap-2 rounded-lg bg-slate-100 px-5 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-200"
+          className="inline-flex items-center gap-2 rounded-lg bg-surface-card px-5 py-2.5 text-sm font-medium text-body-strong transition-colors hover:bg-hairline"
         >
           <span className="material-symbols-outlined text-lg">quiz</span>
           Take Another Exam
@@ -891,8 +891,8 @@ export default function ExamResult() {
 function PageSkeleton() {
   return (
     <div className="space-y-6">
-      <div className="h-96 animate-pulse rounded-2xl bg-slate-200" />
-      <div className="h-48 animate-pulse rounded-2xl bg-slate-200" />
+      <div className="h-96 animate-pulse rounded-lg bg-hairline" />
+      <div className="h-48 animate-pulse rounded-lg bg-hairline" />
     </div>
   );
 }

@@ -1,8 +1,24 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Badge } from '../../components/ui';
+import { StatCard } from '../../components/dashboard';
 import { getTeacherExams } from '../../services/examService';
+
+const statusBadge = {
+  draft: 'pill',
+  published: 'coral-soft',
+  active: 'info',
+  completed: 'success',
+  archived: 'pill',
+};
+
+const difficultyTone = {
+  easy: 'text-[#2f6e3d]',
+  medium: 'text-[#7a5a0e]',
+  hard: 'text-[#8a3636]',
+};
 
 export default function ExamList() {
   const [isLoading, setIsLoading] = useState(true);
@@ -28,383 +44,258 @@ export default function ExamList() {
   }, []);
 
   const filteredExams = exams.filter((exam) => {
-    const matchesStatus = filterStatus === 'all' || exam.status.toLowerCase() === filterStatus;
-    const matchesSearch = exam.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          (exam.course || exam.subject || '').toLowerCase().includes(searchQuery.toLowerCase());
+    const status = (exam.status || '').toLowerCase();
+    const matchesStatus = filterStatus === 'all' || status === filterStatus;
+    const matchesSearch =
+      exam.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (exam.course || exam.subject || '').toLowerCase().includes(searchQuery.toLowerCase());
     return matchesStatus && matchesSearch;
   });
 
   const stats = {
     all: exams.length,
-    draft: exams.filter(e => e.status.toLowerCase() === 'draft').length,
-    published: exams.filter(e => e.status.toLowerCase() === 'published').length,
-    active: exams.filter(e => e.status.toLowerCase() === 'active').length,
-    completed: exams.filter(e => e.status.toLowerCase() === 'completed').length,
-    archived: exams.filter(e => e.status.toLowerCase() === 'archived').length,
+    draft: exams.filter((e) => e.status?.toLowerCase() === 'draft').length,
+    published: exams.filter((e) => e.status?.toLowerCase() === 'published').length,
+    active: exams.filter((e) => e.status?.toLowerCase() === 'active').length,
+    completed: exams.filter((e) => e.status?.toLowerCase() === 'completed').length,
+    archived: exams.filter((e) => e.status?.toLowerCase() === 'archived').length,
   };
 
-  if (isLoading) {
-    return <PageSkeleton />;
-  }
+  if (isLoading) return <PageSkeleton />;
+
+  const tabs = [
+    { id: 'all', label: 'All', count: stats.all },
+    { id: 'draft', label: 'Drafts', count: stats.draft },
+    { id: 'published', label: 'Published', count: stats.published },
+    { id: 'active', label: 'Active', count: stats.active },
+    { id: 'completed', label: 'Completed', count: stats.completed },
+  ];
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="space-y-8">
+      <header className="flex flex-col gap-4 border-b border-hairline pb-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">My Exams</h1>
-          <p className="mt-1 text-sm text-slate-600">
-            Manage and organize all your exams
-          </p>
+          <p className="text-xs uppercase tracking-[0.15em] text-muted">Library</p>
+          <h1 className="mt-2 font-display text-[36px] leading-tight tracking-[-0.02em] text-ink md:text-[42px]">
+            My exams
+          </h1>
+          <p className="mt-2 text-sm text-muted">Authored, in flight, and in the archive.</p>
         </div>
         <Link
           to="/dashboard/create-exam"
-          style={{ background: 'linear-gradient(to right, #0084D1, #006BB3)' }}
-          className="flex items-center gap-2 rounded-lg px-5 py-2.5 font-medium text-white shadow-lg transition-all hover:shadow-xl hover:scale-105"
+          className="inline-flex h-10 items-center gap-2 self-start rounded-md bg-primary px-5 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active"
         >
-          <span className="material-symbols-outlined text-xl">add</span>
-          Create Exam
+          <span className="material-symbols-outlined text-[18px]">add</span>
+          New exam
         </Link>
-      </div>
+      </header>
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
-        <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-600">Total Exams</p>
-              <p className="mt-1 text-3xl font-bold text-slate-900">{stats.all}</p>
-            </div>
-            <div
-              className="flex h-12 w-12 items-center justify-center rounded-xl text-white"
-              style={{ backgroundColor: '#0084D1' }}
-            >
-              <span className="material-symbols-outlined text-2xl">assignment</span>
-            </div>
-          </div>
-        </div>
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          title="Total"
+          value={stats.all}
+          subtitle="Authored to date"
+          icon="assignment"
+          variant="primary"
+        />
+        <StatCard
+          title="Active"
+          value={stats.active}
+          subtitle="Currently open"
+          icon="play_circle"
+          variant="info"
+        />
+        <StatCard
+          title="Completed"
+          value={stats.completed}
+          subtitle="Closed exams"
+          icon="check_circle"
+          variant="success"
+        />
+        <StatCard
+          title="Drafts"
+          value={stats.draft}
+          subtitle="In progress"
+          icon="draft"
+          variant="warning"
+        />
+      </section>
 
-        <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-600">Active</p>
-              <p className="mt-1 text-3xl font-bold text-slate-900">{stats.active}</p>
-            </div>
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500 text-white">
-              <span className="material-symbols-outlined text-2xl">play_circle</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-600">Completed</p>
-              <p className="mt-1 text-3xl font-bold text-slate-900">{stats.completed}</p>
-            </div>
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-green-500 text-white">
-              <span className="material-symbols-outlined text-2xl">check_circle</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-600">Drafts</p>
-              <p className="mt-1 text-3xl font-bold text-slate-900">{stats.draft}</p>
-            </div>
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500 text-white">
-              <span className="material-symbols-outlined text-2xl">draft</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Filters and Search */}
-      <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-200">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          {/* Status Filter */}
-          <div className="flex flex-wrap gap-2 rounded-lg bg-slate-100 p-1">
+      <section className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-wrap items-center gap-1 rounded-md bg-surface-soft p-1">
+          {tabs.map((tab) => (
             <button
-              onClick={() => setFilterStatus('all')}
-              className={`rounded-md px-3 py-2 text-sm font-medium transition-all ${
-                filterStatus === 'all'
-                  ? 'bg-white text-slate-900 shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
+              key={tab.id}
+              onClick={() => setFilterStatus(tab.id)}
+              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                filterStatus === tab.id
+                  ? 'bg-canvas text-ink shadow-sm'
+                  : 'text-muted hover:text-ink'
               }`}
             >
-              All ({stats.all})
+              {tab.label}{' '}
+              <span className="ml-1 text-xs text-muted">({tab.count})</span>
             </button>
-            <button
-              onClick={() => setFilterStatus('draft')}
-              className={`rounded-md px-3 py-2 text-sm font-medium transition-all ${
-                filterStatus === 'draft'
-                  ? 'bg-white text-slate-900 shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Drafts ({stats.draft})
-            </button>
-            <button
-              onClick={() => setFilterStatus('published')}
-              className={`rounded-md px-3 py-2 text-sm font-medium transition-all ${
-                filterStatus === 'published'
-                  ? 'bg-white text-slate-900 shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Published ({stats.published})
-            </button>
-            <button
-              onClick={() => setFilterStatus('active')}
-              className={`rounded-md px-3 py-2 text-sm font-medium transition-all ${
-                filterStatus === 'active'
-                  ? 'bg-white text-slate-900 shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Active ({stats.active})
-            </button>
-            <button
-              onClick={() => setFilterStatus('completed')}
-              className={`rounded-md px-3 py-2 text-sm font-medium transition-all ${
-                filterStatus === 'completed'
-                  ? 'bg-white text-slate-900 shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Completed ({stats.completed})
-            </button>
-          </div>
-
-          {/* Search */}
-          <div className="relative">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-              search
-            </span>
-            <input
-              type="text"
-              placeholder="Search exams..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 py-2 pl-10 pr-4 text-sm focus:outline-none md:w-64"
-              onFocus={(e) => {
-                e.target.style.borderColor = '#0084D1';
-                e.target.style.boxShadow = '0 0 0 3px rgba(0, 132, 209, 0.1)';
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = '#cbd5e1';
-                e.target.style.boxShadow = 'none';
-              }}
-            />
-          </div>
+          ))}
         </div>
-      </div>
 
-      {/* Exams List */}
-      <div className="space-y-4">
+        <div className="relative">
+          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-muted">
+            search
+          </span>
+          <input
+            type="text"
+            placeholder="Search exams…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="h-10 w-full rounded-md border border-hairline bg-canvas pl-9 pr-3 text-sm text-ink placeholder:text-muted-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 md:w-72"
+          />
+        </div>
+      </section>
+
+      <section className="space-y-4">
         {filteredExams.length === 0 ? (
-          <div className="rounded-2xl bg-white p-12 text-center shadow-sm border border-slate-200">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
-              <span className="material-symbols-outlined text-3xl text-slate-400">assignment</span>
-            </div>
-            <h3 className="mb-2 text-lg font-semibold text-slate-900">No exams found</h3>
-            <p className="text-sm text-slate-600">
+          <div className="rounded-lg border border-dashed border-hairline bg-surface-soft p-12 text-center">
+            <span className="material-symbols-outlined text-[40px] text-muted">assignment</span>
+            <h3 className="mt-3 font-display text-[22px] leading-tight text-ink">
+              No exams to show.
+            </h3>
+            <p className="mt-2 text-sm text-muted">
               {searchQuery
-                ? 'Try adjusting your search or filters'
-                : 'Create your first exam to get started'}
+                ? 'Try a different search term.'
+                : 'Create your first exam to get started.'}
             </p>
           </div>
         ) : (
-          filteredExams.map((exam) => <ExamCard key={exam.id} exam={exam} />)
+          filteredExams.map((exam) => <TeacherExamRow key={exam.id} exam={exam} />)
         )}
-      </div>
+      </section>
     </div>
   );
 }
 
-// Exam Card Component
-function ExamCard({ exam }) {
-  const statusConfig = {
-    draft: {
-      label: 'Draft',
-      color: 'text-amber-700',
-      bgColor: 'bg-amber-50',
-      borderColor: 'border-amber-200',
-    },
-    published: {
-      label: 'Published',
-      color: 'text-purple-700',
-      bgColor: 'bg-purple-50',
-      borderColor: 'border-purple-200',
-    },
-    active: {
-      label: 'Active',
-      color: 'text-blue-700',
-      bgColor: 'bg-blue-50',
-      borderColor: 'border-blue-200',
-    },
-    completed: {
-      label: 'Completed',
-      color: 'text-green-700',
-      bgColor: 'bg-green-50',
-      borderColor: 'border-green-200',
-    },
-    archived: {
-      label: 'Archived',
-      color: 'text-slate-700',
-      bgColor: 'bg-slate-50',
-      borderColor: 'border-slate-200',
-    },
-  };
-
-  const difficultyConfig = {
-    easy: { label: 'Easy', color: 'text-green-600' },
-    medium: { label: 'Medium', color: 'text-amber-600' },
-    hard: { label: 'Hard', color: 'text-red-600' },
-  };
-
-  const examTypeConfig = {
-    mcq: { label: 'MCQ', icon: 'check_box' },
-    cq: { label: 'Written', icon: 'edit_note' },
-  };
-
-  const status = statusConfig[exam.status?.toLowerCase()] || statusConfig.draft;
-  const difficulty = difficultyConfig[exam.difficulty];
-  const examType = examTypeConfig[exam.examType?.toLowerCase()];
-  const course = exam.course || exam.subject || 'No course';
+function TeacherExamRow({ exam }) {
+  const status = (exam.status || 'draft').toLowerCase();
+  const badgeVariant = statusBadge[status] || 'pill';
   const duration = exam.durationMinutes || exam.duration;
+  const course = exam.course || exam.subject || 'No course';
 
   return (
-    <div className="rounded-xl bg-white p-6 shadow-sm border border-slate-200 transition-all hover:shadow-md">
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="flex items-start gap-3">
-            <div
-              className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl text-white"
-              style={{ backgroundColor: '#0084D1' }}
-            >
-              <span className="material-symbols-outlined text-xl">assignment</span>
-            </div>
-            <div className="flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <h3 className="text-lg font-semibold text-slate-900">{exam.title}</h3>
-                <span
-                  className={`rounded-full border px-3 py-1 text-xs font-medium ${status.color} ${status.bgColor} ${status.borderColor}`}
-                >
-                  {status.label}
-                </span>
-                {examType && (
-                  <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700">
-                    {examType.label}
-                  </span>
-                )}
-              </div>
-              <p className="mt-1 text-sm text-slate-600">{course}</p>
-
-              {/* Exam Details */}
-              <div className="mt-4 flex flex-wrap gap-4 text-sm text-slate-600">
-                <div className="flex items-center gap-1">
-                  <span className="material-symbols-outlined text-base">quiz</span>
-                  <span>{exam.totalQuestions || exam.questions?.length || 0} questions</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="material-symbols-outlined text-base">schedule</span>
-                  <span>{duration} min</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="material-symbols-outlined text-base">military_tech</span>
-                  <span>{exam.totalMarks} marks</span>
-                </div>
-                {exam.passingMarks && (
-                  <div className="flex items-center gap-1">
-                    <span className="material-symbols-outlined text-base">verified</span>
-                    <span>Pass: {exam.passingMarks}</span>
-                  </div>
-                )}
-                {exam.difficulty && difficulty && (
-                  <div className="flex items-center gap-1">
-                    <span className="material-symbols-outlined text-base">signal_cellular_alt</span>
-                    <span className={difficulty.color}>{difficulty.label}</span>
-                  </div>
-                )}
-                {['active', 'completed'].includes(exam.status?.toLowerCase()) && (
-                  <div className="flex items-center gap-1">
-                    <span className="material-symbols-outlined text-base">people</span>
-                    <span>{exam.submissions || 0} submissions</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Dates */}
-              {(exam.startDateTime || exam.startDate) && (
-                <div className="mt-3 flex flex-wrap gap-4 text-xs text-slate-500">
-                  <span className="flex items-center gap-1">
-                    <span className="material-symbols-outlined text-sm">calendar_today</span>
-                    Start: {exam.startDateTime 
-                      ? new Date(exam.startDateTime).toLocaleString() 
-                      : exam.startDate}
-                  </span>
-                  {(exam.endDateTime || exam.dueDate) && (
-                    <span className="flex items-center gap-1">
-                      <span className="material-symbols-outlined text-sm">event</span>
-                      End: {exam.endDateTime 
-                        ? new Date(exam.endDateTime).toLocaleString() 
-                        : exam.dueDate}
-                    </span>
-                  )}
-                </div>
+    <article className="rounded-lg border border-hairline bg-canvas p-6 transition-colors hover:border-primary/30">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex flex-1 items-start gap-4">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+            <span className="material-symbols-outlined text-[20px]">assignment</span>
+          </div>
+          <div className="flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="font-display text-[22px] leading-tight tracking-[-0.015em] text-ink">
+                {exam.title}
+              </h3>
+              <Badge variant={badgeVariant} size="sm">
+                {status.charAt(0).toUpperCase() + status.slice(1)}
+              </Badge>
+              {exam.examType && (
+                <Badge variant="pill" size="sm">
+                  {exam.examType.toUpperCase()}
+                </Badge>
               )}
             </div>
+            <p className="mt-1 text-sm text-muted">{course}</p>
+
+            <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted">
+              <span className="flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[14px]">quiz</span>
+                {exam.totalQuestions || exam.questions?.length || 0} questions
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[14px]">schedule</span>
+                {duration} min
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[14px]">military_tech</span>
+                {exam.totalMarks} marks
+              </span>
+              {exam.passingMarks && (
+                <span className="flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[14px]">verified</span>
+                  Pass {exam.passingMarks}
+                </span>
+              )}
+              {exam.difficulty && (
+                <span
+                  className={`flex items-center gap-1.5 ${difficultyTone[exam.difficulty] || ''}`}
+                >
+                  <span className="material-symbols-outlined text-[14px]">signal_cellular_alt</span>
+                  {exam.difficulty.charAt(0).toUpperCase() + exam.difficulty.slice(1)}
+                </span>
+              )}
+              {['active', 'completed'].includes(status) && (
+                <span className="flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[14px]">people</span>
+                  {exam.submissions || 0} submissions
+                </span>
+              )}
+            </div>
+
+            {(exam.startDateTime || exam.startDate) && (
+              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-soft">
+                <span className="flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[13px]">calendar_today</span>
+                  Start{' '}
+                  {exam.startDateTime
+                    ? new Date(exam.startDateTime).toLocaleString()
+                    : exam.startDate}
+                </span>
+                {(exam.endDateTime || exam.dueDate) && (
+                  <span className="flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[13px]">event</span>
+                    End{' '}
+                    {exam.endDateTime
+                      ? new Date(exam.endDateTime).toLocaleString()
+                      : exam.dueDate}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <Link
             to={`/dashboard/exam/${exam.id}`}
-            style={{ backgroundColor: '#0084D1' }}
-            className="flex items-center gap-1 rounded-lg px-4 py-2 text-sm font-medium text-white transition-all hover:opacity-90"
+            className="inline-flex h-10 items-center gap-1.5 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active"
           >
-            <span className="material-symbols-outlined text-lg">
-              {exam.status?.toLowerCase() === 'draft' ? 'edit' : 'visibility'}
+            <span className="material-symbols-outlined text-[16px]">
+              {status === 'draft' ? 'edit' : 'visibility'}
             </span>
-            {exam.status?.toLowerCase() === 'draft' ? 'Edit' : 'View'}
+            {status === 'draft' ? 'Edit' : 'View'}
           </Link>
         </div>
       </div>
-    </div>
+    </article>
   );
 }
 
-// Loading Skeleton
 function PageSkeleton() {
   return (
-    <div className="space-y-6">
-      {/* Header Skeleton */}
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="h-8 w-48 animate-pulse rounded-lg bg-slate-200"></div>
-          <div className="mt-2 h-4 w-96 animate-pulse rounded bg-slate-200"></div>
+    <div className="space-y-8">
+      <div className="flex items-end justify-between border-b border-hairline pb-6">
+        <div className="space-y-2">
+          <div className="h-3 w-20 animate-pulse rounded bg-hairline" />
+          <div className="h-10 w-64 animate-pulse rounded bg-hairline" />
         </div>
-        <div className="h-10 w-32 animate-pulse rounded-lg bg-slate-200"></div>
+        <div className="h-10 w-32 animate-pulse rounded-md bg-hairline" />
       </div>
-
-      {/* Stats Skeleton */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="h-24 animate-pulse rounded-xl bg-slate-200"></div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="h-28 animate-pulse rounded-lg bg-hairline" />
         ))}
       </div>
-
-      {/* Filters Skeleton */}
-      <div className="h-20 animate-pulse rounded-2xl bg-slate-200"></div>
-
-      {/* Exams Skeleton */}
+      <div className="h-12 animate-pulse rounded-md bg-hairline" />
       <div className="space-y-4">
         {[...Array(3)].map((_, i) => (
-          <div key={i} className="h-40 animate-pulse rounded-xl bg-slate-200"></div>
+          <div key={i} className="h-32 animate-pulse rounded-lg bg-hairline" />
         ))}
       </div>
     </div>

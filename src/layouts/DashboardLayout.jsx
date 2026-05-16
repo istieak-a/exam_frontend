@@ -9,18 +9,14 @@ export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Sidebar */}
+    <div className="min-h-screen bg-canvas">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      {/* Main Content Area */}
-      <div className="flex flex-col lg:pl-64">
-        {/* Navbar */}
+      <div className="flex min-h-screen flex-col lg:pl-64">
         <Navbar onMenuClick={() => setSidebarOpen(true)} />
 
-        {/* Page Content */}
         <main className="flex-1">
-          <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+          <div className="mx-auto w-full max-w-[1200px] px-6 py-10 sm:px-8 lg:px-10 lg:py-12">
             <Outlet />
           </div>
         </main>

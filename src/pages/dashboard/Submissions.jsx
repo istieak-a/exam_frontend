@@ -1,14 +1,22 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Badge } from '../../components/ui';
+import { StatCard } from '../../components/dashboard';
 import { getAllSubmissions, getTeacherExams } from '../../services/examService';
+
+const statusBadge = {
+  pending: { variant: 'warning', label: 'Pending', icon: 'pending_actions' },
+  'in-review': { variant: 'info', label: 'In review', icon: 'rate_review' },
+  graded: { variant: 'success', label: 'Graded', icon: 'check_circle' },
+};
 
 export default function Submissions() {
   const [isLoading, setIsLoading] = useState(true);
   const [submissions, setSubmissions] = useState([]);
   const [exams, setExams] = useState([]);
-  const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'pending', 'graded', 'in-review'
+  const [filterStatus, setFilterStatus] = useState('all');
   const [selectedExam, setSelectedExam] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -16,16 +24,16 @@ export default function Submissions() {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        
-        // Fetch submissions and exams in parallel
         const [submissionsData, examsData] = await Promise.all([
           getAllSubmissions(),
           getTeacherExams(),
         ]);
-        
-        const submissionsList = Array.isArray(submissionsData) ? submissionsData : submissionsData?.content || [];
+
+        const submissionsList = Array.isArray(submissionsData)
+          ? submissionsData
+          : submissionsData?.content || [];
         const examsList = Array.isArray(examsData) ? examsData : examsData?.content || [];
-        
+
         setSubmissions(submissionsList);
         setExams(examsList);
       } catch (err) {
@@ -41,366 +49,233 @@ export default function Submissions() {
   const filteredSubmissions = submissions.filter((submission) => {
     const matchesStatus = filterStatus === 'all' || submission.status === filterStatus;
     const matchesExam = selectedExam === 'all' || submission.examTitle === selectedExam;
-    const matchesSearch = submission.student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          submission.student.id.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch =
+      submission.student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      submission.student.id.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesStatus && matchesExam && matchesSearch;
   });
 
   const stats = {
     all: submissions.length,
-    pending: submissions.filter(s => s.status === 'pending').length,
-    inReview: submissions.filter(s => s.status === 'in-review').length,
-    graded: submissions.filter(s => s.status === 'graded').length,
+    pending: submissions.filter((s) => s.status === 'pending').length,
+    inReview: submissions.filter((s) => s.status === 'in-review').length,
+    graded: submissions.filter((s) => s.status === 'graded').length,
   };
 
-  if (isLoading) {
-    return <PageSkeleton />;
-  }
+  if (isLoading) return <PageSkeleton />;
+
+  const tabs = [
+    { id: 'all', label: 'All', count: stats.all },
+    { id: 'pending', label: 'Pending', count: stats.pending },
+    { id: 'in-review', label: 'In review', count: stats.inReview },
+    { id: 'graded', label: 'Graded', count: stats.graded },
+  ];
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Submissions</h1>
-        <p className="mt-1 text-sm text-slate-600">
-          Review and grade student submissions
-        </p>
-      </div>
+    <div className="space-y-8">
+      <header className="border-b border-hairline pb-6">
+        <p className="text-xs uppercase tracking-[0.15em] text-muted">Submissions</p>
+        <h1 className="mt-2 font-display text-[36px] leading-tight tracking-[-0.02em] text-ink md:text-[42px]">
+          Submissions inbox
+        </h1>
+        <p className="mt-2 text-sm text-muted">Where considered grading happens.</p>
+      </header>
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 sm:grid-cols-4">
-        <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-600">Total</p>
-              <p className="mt-1 text-3xl font-bold text-slate-900">{stats.all}</p>
-            </div>
-            <div
-              className="flex h-12 w-12 items-center justify-center rounded-xl text-white"
-              style={{ backgroundColor: '#0084D1' }}
-            >
-              <span className="material-symbols-outlined text-2xl">fact_check</span>
-            </div>
-          </div>
-        </div>
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard title="Total" value={stats.all} subtitle="Across exams" icon="fact_check" variant="primary" />
+        <StatCard title="Pending" value={stats.pending} subtitle="Need a read" icon="pending_actions" variant="warning" />
+        <StatCard title="In review" value={stats.inReview} subtitle="With you" icon="rate_review" variant="info" />
+        <StatCard title="Graded" value={stats.graded} subtitle="Closed" icon="check_circle" variant="success" />
+      </section>
 
-        <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-600">Pending</p>
-              <p className="mt-1 text-3xl font-bold text-slate-900">{stats.pending}</p>
-            </div>
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500 text-white">
-              <span className="material-symbols-outlined text-2xl">pending_actions</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-600">In Review</p>
-              <p className="mt-1 text-3xl font-bold text-slate-900">{stats.inReview}</p>
-            </div>
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500 text-white">
-              <span className="material-symbols-outlined text-2xl">rate_review</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-600">Graded</p>
-              <p className="mt-1 text-3xl font-bold text-slate-900">{stats.graded}</p>
-            </div>
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-green-500 text-white">
-              <span className="material-symbols-outlined text-2xl">check_circle</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-200">
-        <div className="flex flex-col gap-4">
-          {/* Status Filter */}
+      <section className="rounded-lg border border-hairline bg-canvas p-5">
+        <div className="space-y-4">
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Filter by Status</label>
-            <div className="flex gap-2 rounded-lg bg-slate-100 p-1">
-              <button
-                onClick={() => setFilterStatus('all')}
-                className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-all ${
-                  filterStatus === 'all'
-                    ? 'bg-white text-slate-900 shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                All ({stats.all})
-              </button>
-              <button
-                onClick={() => setFilterStatus('pending')}
-                className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-all ${
-                  filterStatus === 'pending'
-                    ? 'bg-white text-slate-900 shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Pending ({stats.pending})
-              </button>
-              <button
-                onClick={() => setFilterStatus('in-review')}
-                className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-all ${
-                  filterStatus === 'in-review'
-                    ? 'bg-white text-slate-900 shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                In Review ({stats.inReview})
-              </button>
-              <button
-                onClick={() => setFilterStatus('graded')}
-                className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-all ${
-                  filterStatus === 'graded'
-                    ? 'bg-white text-slate-900 shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Graded ({stats.graded})
-              </button>
+            <label className="mb-2 block text-[11px] uppercase tracking-[0.15em] text-muted">
+              Filter by status
+            </label>
+            <div className="flex flex-wrap items-center gap-1 rounded-md bg-surface-soft p-1">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setFilterStatus(tab.id)}
+                  className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                    filterStatus === tab.id
+                      ? 'bg-canvas text-ink shadow-sm'
+                      : 'text-muted hover:text-ink'
+                  }`}
+                >
+                  {tab.label} <span className="ml-1 text-xs text-muted">({tab.count})</span>
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Exam Filter and Search */}
           <div className="flex flex-col gap-4 md:flex-row">
             <div className="flex-1">
-              <label className="mb-2 block text-sm font-medium text-slate-700">Filter by Exam</label>
+              <label className="mb-1.5 block text-sm font-medium text-ink">Filter by exam</label>
               <select
                 value={selectedExam}
                 onChange={(e) => setSelectedExam(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm focus:outline-none"
-                onFocus={(e) => {
-                  e.target.style.borderColor = '#0084D1';
-                  e.target.style.boxShadow = '0 0 0 3px rgba(0, 132, 209, 0.1)';
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = '#cbd5e1';
-                  e.target.style.boxShadow = 'none';
-                }}
+                className="h-10 w-full rounded-md border border-hairline bg-canvas px-3 text-sm text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               >
-                <option value="all">All Exams</option>
-                {exams.filter(e => ['published', 'active', 'completed'].includes(e.status?.toLowerCase())).map((exam) => (
-                  <option key={exam.id} value={exam.title}>
-                    {exam.title}
-                  </option>
-                ))}
+                <option value="all">All exams</option>
+                {exams
+                  .filter((e) =>
+                    ['published', 'active', 'completed'].includes(e.status?.toLowerCase()),
+                  )
+                  .map((exam) => (
+                    <option key={exam.id} value={exam.title}>
+                      {exam.title}
+                    </option>
+                  ))}
               </select>
             </div>
 
             <div className="flex-1">
-              <label className="mb-2 block text-sm font-medium text-slate-700">Search Student</label>
+              <label className="mb-1.5 block text-sm font-medium text-ink">Search student</label>
               <div className="relative">
-                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-muted">
                   search
                 </span>
                 <input
                   type="text"
-                  placeholder="Search by name or ID..."
+                  placeholder="By name or ID…"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 py-2.5 pl-10 pr-4 text-sm focus:outline-none"
-                  onFocus={(e) => {
-                    e.target.style.borderColor = '#0084D1';
-                    e.target.style.boxShadow = '0 0 0 3px rgba(0, 132, 209, 0.1)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = '#cbd5e1';
-                    e.target.style.boxShadow = 'none';
-                  }}
+                  className="h-10 w-full rounded-md border border-hairline bg-canvas pl-9 pr-3 text-sm text-ink placeholder:text-muted-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Submissions List */}
-      <div className="space-y-4">
+      <section className="space-y-4">
         {filteredSubmissions.length === 0 ? (
-          <div className="rounded-2xl bg-white p-12 text-center shadow-sm border border-slate-200">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
-              <span className="material-symbols-outlined text-3xl text-slate-400">fact_check</span>
-            </div>
-            <h3 className="mb-2 text-lg font-semibold text-slate-900">No submissions found</h3>
-            <p className="text-sm text-slate-600">
+          <div className="rounded-lg border border-dashed border-hairline bg-surface-soft p-12 text-center">
+            <span className="material-symbols-outlined text-[40px] text-muted">fact_check</span>
+            <h3 className="mt-3 font-display text-[22px] leading-tight text-ink">
+              No submissions match.
+            </h3>
+            <p className="mt-2 text-sm text-muted">
               {searchQuery || selectedExam !== 'all' || filterStatus !== 'all'
-                ? 'Try adjusting your search or filters'
-                : 'No submissions available yet'}
+                ? 'Loosen a filter to see more.'
+                : 'No submissions yet.'}
             </p>
           </div>
         ) : (
           filteredSubmissions.map((submission) => (
-            <SubmissionCard key={submission.id} submission={submission} />
+            <SubmissionRow key={submission.id} submission={submission} />
           ))
         )}
-      </div>
+      </section>
     </div>
   );
 }
 
-// Submission Card Component
-function SubmissionCard({ submission }) {
-  const statusConfig = {
-    pending: {
-      label: 'Pending Review',
-      color: 'text-amber-700',
-      bgColor: 'bg-amber-50',
-      borderColor: 'border-amber-200',
-      icon: 'pending_actions',
-    },
-    'in-review': {
-      label: 'In Review',
-      color: 'text-blue-700',
-      bgColor: 'bg-blue-50',
-      borderColor: 'border-blue-200',
-      icon: 'rate_review',
-    },
-    graded: {
-      label: 'Graded',
-      color: 'text-green-700',
-      bgColor: 'bg-green-50',
-      borderColor: 'border-green-200',
-      icon: 'check_circle',
-    },
-  };
-
-  const status = statusConfig[submission.status];
+function SubmissionRow({ submission }) {
+  const status = statusBadge[submission.status] || statusBadge.pending;
 
   return (
-    <div className="rounded-xl bg-white p-6 shadow-sm border border-slate-200 transition-all hover:shadow-md">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex-1">
-          {/* Student Info */}
-          <div className="flex items-start gap-3">
-            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-500 text-lg font-bold text-white">
-              {submission.student.name.split(' ').map(n => n[0]).join('')}
+    <article className="rounded-lg border border-hairline bg-canvas p-6 transition-colors hover:border-primary/30">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex flex-1 items-start gap-4">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/15 text-sm font-medium text-primary">
+            {submission.student.name
+              .split(' ')
+              .map((n) => n[0])
+              .join('')}
+          </div>
+          <div className="flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="font-display text-[20px] leading-tight tracking-[-0.015em] text-ink">
+                {submission.student.name}
+              </h3>
+              <Badge variant={status.variant} size="sm">
+                <span className="material-symbols-outlined text-[13px]">{status.icon}</span>
+                {status.label}
+              </Badge>
             </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <h3 className="text-lg font-semibold text-slate-900">{submission.student.name}</h3>
-                <span
-                  className={`rounded-full border px-3 py-1 text-xs font-medium ${status.color} ${status.bgColor} ${status.borderColor}`}
-                >
-                  {status.label}
+            <p className="mt-1 text-xs text-muted">{submission.student.id}</p>
+
+            <div className="mt-3 flex items-center gap-2 text-sm text-body">
+              <span className="material-symbols-outlined text-[16px] text-muted">assignment</span>
+              <span className="font-medium">{submission.examTitle}</span>
+            </div>
+
+            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-muted">
+              <span className="flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[14px]">
+                  {submission.examType === 'mcq' ? 'radio_button_checked' : 'edit_note'}
                 </span>
-              </div>
-              <p className="text-sm text-slate-600">{submission.student.id}</p>
-
-              {/* Exam Title */}
-              <div className="mt-3 flex items-center gap-2">
-                <span className="material-symbols-outlined text-base text-slate-400">assignment</span>
-                <span className="font-medium text-slate-700">{submission.examTitle}</span>
-              </div>
-
-              {/* Submission Details */}
-              <div className="mt-3 flex flex-wrap gap-4 text-sm text-slate-600">
-                <div className="flex items-center gap-1">
-                  <span className="material-symbols-outlined text-base">
-                    {submission.examType === 'mcq' ? 'radio_button_checked' : 'edit_note'}
-                  </span>
-                  <span className="font-medium">
-                    {submission.examType === 'mcq' ? 'MCQ Exam' : 'CQ Exam'}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="material-symbols-outlined text-base">schedule</span>
-                  <span>{submission.submittedAt}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="material-symbols-outlined text-base">timer</span>
-                  <span>Time: {submission.timeTaken}</span>
-                </div>
-                {submission.autoScore && (
-                  <div className="flex items-center gap-1">
-                    <span className="material-symbols-outlined text-base">calculate</span>
-                    <span>Auto: {submission.autoScore}</span>
-                  </div>
-                )}
-                {submission.totalScore !== undefined && (
-                  <div className="flex items-center gap-1">
-                    <span className="material-symbols-outlined text-base">military_tech</span>
-                    <span className="font-semibold" style={{ color: '#0084D1' }}>
-                      Score: {submission.totalScore}/{submission.maxScore} ({submission.percentage}%)
-                    </span>
-                  </div>
-                )}
-              </div>
+                {submission.examType === 'mcq' ? 'MCQ' : 'Written'}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[14px]">schedule</span>
+                {submission.submittedAt}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[14px]">timer</span>
+                {submission.timeTaken}
+              </span>
+              {submission.autoScore && (
+                <span className="flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[14px]">calculate</span>
+                  Auto {submission.autoScore}
+                </span>
+              )}
+              {submission.totalScore !== undefined && (
+                <span className="flex items-center gap-1.5 font-medium text-primary">
+                  <span className="material-symbols-outlined text-[14px]">military_tech</span>
+                  {submission.totalScore}/{submission.maxScore} ({submission.percentage}%)
+                </span>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex flex-col gap-2">
-          {submission.examType === 'mcq' ? (
-            // MCQ exams - only View option (auto-graded)
+        <div className="shrink-0">
+          {submission.examType === 'mcq' || submission.status === 'graded' ? (
             <Link
               to={`/dashboard/grade/${submission.id}`}
-              className="flex items-center gap-1 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+              className="inline-flex h-10 items-center gap-1.5 rounded-md border border-hairline bg-canvas px-4 text-sm font-medium text-ink transition-colors hover:bg-surface-soft"
             >
-              <span className="material-symbols-outlined text-lg">visibility</span>
+              <span className="material-symbols-outlined text-[16px]">visibility</span>
               View
             </Link>
           ) : (
-            // CQ exams - Grade or View option
-            submission.status === 'graded' ? (
-              <Link
-                to={`/dashboard/grade/${submission.id}`}
-                className="flex items-center gap-1 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
-              >
-                <span className="material-symbols-outlined text-lg">visibility</span>
-                View
-              </Link>
-            ) : (
-              <Link
-                to={`/dashboard/grade/${submission.id}`}
-                style={{ backgroundColor: '#0084D1' }}
-                className="flex items-center gap-1 rounded-lg px-4 py-2 text-sm font-medium text-white transition-all hover:opacity-90"
-              >
-                <span className="material-symbols-outlined text-lg">rate_review</span>
-                Grade
-              </Link>
-            )
+            <Link
+              to={`/dashboard/grade/${submission.id}`}
+              className="inline-flex h-10 items-center gap-1.5 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active"
+            >
+              <span className="material-symbols-outlined text-[16px]">rate_review</span>
+              Grade
+            </Link>
           )}
         </div>
       </div>
-    </div>
+    </article>
   );
 }
 
-// Loading Skeleton
 function PageSkeleton() {
   return (
-    <div className="space-y-6">
-      {/* Header Skeleton */}
-      <div>
-        <div className="h-8 w-48 animate-pulse rounded-lg bg-slate-200"></div>
-        <div className="mt-2 h-4 w-96 animate-pulse rounded bg-slate-200"></div>
+    <div className="space-y-8">
+      <div className="space-y-2 border-b border-hairline pb-6">
+        <div className="h-3 w-20 animate-pulse rounded bg-hairline" />
+        <div className="h-10 w-64 animate-pulse rounded bg-hairline" />
+        <div className="h-3 w-40 animate-pulse rounded bg-hairline" />
       </div>
-
-      {/* Stats Skeleton */}
-      <div className="grid gap-4 sm:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="h-24 animate-pulse rounded-xl bg-slate-200"></div>
+          <div key={i} className="h-28 animate-pulse rounded-lg bg-hairline" />
         ))}
       </div>
-
-      {/* Filters Skeleton */}
-      <div className="h-40 animate-pulse rounded-2xl bg-slate-200"></div>
-
-      {/* Submissions Skeleton */}
+      <div className="h-40 animate-pulse rounded-lg bg-hairline" />
       <div className="space-y-4">
         {[...Array(3)].map((_, i) => (
-          <div key={i} className="h-32 animate-pulse rounded-xl bg-slate-200"></div>
+          <div key={i} className="h-32 animate-pulse rounded-lg bg-hairline" />
         ))}
       </div>
     </div>

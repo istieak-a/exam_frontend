@@ -72,15 +72,15 @@ export default function ExamDetails() {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
         <div className="text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
-            <span className="material-symbols-outlined text-3xl text-slate-400">assignment</span>
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-surface-card">
+            <span className="material-symbols-outlined text-3xl text-muted-soft">assignment</span>
           </div>
-          <h3 className="mb-2 text-lg font-semibold text-slate-900">Exam not found</h3>
-          <p className="mb-4 text-sm text-slate-600">The exam you're looking for doesn't exist.</p>
+          <h3 className="mb-2 text-lg font-semibold text-ink">Exam not found</h3>
+          <p className="mb-4 text-sm text-body">The exam you're looking for doesn't exist.</p>
           <Link
             to="/dashboard/exams"
-            style={{ backgroundColor: '#0084D1' }}
-            className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-all hover:opacity-90"
+ 
+            className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active"
           >
             <span className="material-symbols-outlined text-lg">arrow_back</span>
             Back to Exams
@@ -93,33 +93,33 @@ export default function ExamDetails() {
   const statusConfig = {
     published: {
       label: 'Published',
-      color: 'text-green-700',
-      bgColor: 'bg-green-50',
-      borderColor: 'border-green-200',
+      color: 'text-[#2f6e3d]',
+      bgColor: 'bg-success/10',
+      borderColor: 'border-success/25',
     },
     draft: {
       label: 'Draft',
-      color: 'text-amber-700',
-      bgColor: 'bg-amber-50',
-      borderColor: 'border-amber-200',
+      color: 'text-[#7a5a0e]',
+      bgColor: 'bg-warning/10',
+      borderColor: 'border-warning/30',
     },
     active: {
       label: 'Active',
-      color: 'text-blue-700',
-      bgColor: 'bg-blue-50',
-      borderColor: 'border-blue-200',
+      color: 'text-primary',
+      bgColor: 'bg-primary/10',
+      borderColor: 'border-primary/20',
     },
     completed: {
       label: 'Completed',
-      color: 'text-purple-700',
-      bgColor: 'bg-purple-50',
-      borderColor: 'border-purple-200',
+      color: 'text-[#8a5a1a]',
+      bgColor: 'bg-accent-amber/10',
+      borderColor: 'border-accent-amber/25',
     },
     archived: {
       label: 'Archived',
-      color: 'text-gray-600',
-      bgColor: 'bg-gray-100',
-      borderColor: 'border-gray-200',
+      color: 'text-body',
+      bgColor: 'bg-surface-card',
+      borderColor: 'border-hairline',
     },
   };
 
@@ -139,20 +139,20 @@ export default function ExamDetails() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate('/dashboard/exams')}
-              className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition-colors hover:bg-slate-50"
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-hairline text-body transition-colors hover:bg-surface-soft"
             >
               <span className="material-symbols-outlined text-xl">arrow_back</span>
             </button>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-bold text-slate-900">{exam.title}</h1>
+                <h1 className="font-display text-[32px] leading-tight tracking-[-0.02em] text-ink">{exam.title}</h1>
                 <span
                   className={`rounded-full border px-3 py-1 text-xs font-medium ${status.color} ${status.bgColor} ${status.borderColor}`}
                 >
                   {status.label}
                 </span>
               </div>
-              <p className="mt-1 text-sm text-slate-600">{course}</p>
+              <p className="mt-1 text-sm text-body">{course}</p>
             </div>
           </div>
         </div>
@@ -162,8 +162,8 @@ export default function ExamDetails() {
             <button
               onClick={handlePublish}
               disabled={isPublishing}
-              style={{ backgroundColor: '#0084D1' }}
-              className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-50"
+ 
+              className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active disabled:opacity-60"
             >
               <span className="material-symbols-outlined text-lg">
                 {isPublishing ? 'hourglass_empty' : 'publish'}
@@ -175,7 +175,7 @@ export default function ExamDetails() {
             onClick={() => {
               navigate(`/dashboard/create-exam?edit=${exam.id}`);
             }}
-            className="flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+            className="flex items-center gap-2 rounded-lg border border-hairline px-4 py-2 text-sm font-medium text-body-strong transition-colors hover:bg-surface-soft"
           >
             <span className="material-symbols-outlined text-lg">edit</span>
             Edit
@@ -183,7 +183,7 @@ export default function ExamDetails() {
           <button
             onClick={handleDelete}
             disabled={isDeleting}
-            className="flex items-center gap-2 rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-50 disabled:opacity-50"
+            className="flex items-center gap-2 rounded-lg border border-error/25 px-4 py-2 text-sm font-medium text-[#8a3636] transition-colors hover:bg-error/10 disabled:opacity-50"
           >
             <span className="material-symbols-outlined text-lg">
               {isDeleting ? 'hourglass_empty' : 'delete'}
@@ -194,13 +194,13 @@ export default function ExamDetails() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 rounded-lg p-1" style={{ backgroundColor: '#F0F9FF' }}>
+      <div className="flex gap-2 rounded-lg p-1" >
         <button
           onClick={() => setActiveTab('overview')}
           className={`flex-1 rounded-md px-4 py-2.5 text-sm font-medium transition-all ${
             activeTab === 'overview'
-              ? 'bg-white text-slate-900 shadow-sm'
-              : 'text-slate-600 hover:text-slate-900'
+              ? 'bg-canvas text-ink shadow-sm'
+              : 'text-body hover:text-ink'
           }`}
         >
           <span className="flex items-center justify-center gap-2">
@@ -212,8 +212,8 @@ export default function ExamDetails() {
           onClick={() => setActiveTab('questions')}
           className={`flex-1 rounded-md px-4 py-2.5 text-sm font-medium transition-all ${
             activeTab === 'questions'
-              ? 'bg-white text-slate-900 shadow-sm'
-              : 'text-slate-600 hover:text-slate-900'
+              ? 'bg-canvas text-ink shadow-sm'
+              : 'text-body hover:text-ink'
           }`}
         >
           <span className="flex items-center justify-center gap-2">
@@ -227,8 +227,8 @@ export default function ExamDetails() {
       {activeTab === 'overview' ? (
         <div className="space-y-6">
           {/* Exam Information */}
-          <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-200">
-            <h2 className="mb-4 text-lg font-semibold text-slate-900">Exam Information</h2>
+          <div className="rounded-lg bg-canvas p-6 shadow-sm border border-hairline">
+            <h2 className="mb-4 text-lg font-semibold text-ink">Exam Information</h2>
             <div className="grid gap-6 md:grid-cols-2">
               <InfoItem icon="assignment" label="Exam Title" value={exam.title} />
               <InfoItem icon="school" label="Course" value={course} />
@@ -264,11 +264,11 @@ export default function ExamDetails() {
             ))
           ) : (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
-                <span className="material-symbols-outlined text-3xl text-slate-400">quiz</span>
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-surface-card">
+                <span className="material-symbols-outlined text-3xl text-muted-soft">quiz</span>
               </div>
-              <h3 className="text-lg font-semibold text-slate-900">No questions yet</h3>
-              <p className="mt-1 text-sm text-slate-600">Add questions to this exam to get started.</p>
+              <h3 className="font-display text-[20px] leading-tight tracking-[-0.015em] text-ink">No questions yet</h3>
+              <p className="mt-1 text-sm text-body">Add questions to this exam to get started.</p>
             </div>
           )}
         </div>
@@ -283,13 +283,13 @@ function InfoItem({ icon, label, value }) {
     <div className="flex items-center gap-3">
       <div
         className="flex h-10 w-10 items-center justify-center rounded-lg"
-        style={{ backgroundColor: '#F0F9FF', color: '#0084D1' }}
+ 
       >
         <span className="material-symbols-outlined text-xl">{icon}</span>
       </div>
       <div>
-        <p className="text-xs font-medium text-slate-600">{label}</p>
-        <p className="text-sm font-semibold text-slate-900">{value}</p>
+        <p className="text-xs font-medium text-body">{label}</p>
+        <p className="text-sm font-semibold text-ink">{value}</p>
       </div>
     </div>
   );
@@ -300,18 +300,18 @@ function QuestionCard({ question, index }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+    <div className="overflow-hidden rounded-xl border border-hairline bg-canvas shadow-sm">
       <div className="flex items-center justify-between p-4">
         <div className="flex items-center gap-3 flex-1">
           <div
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold text-white"
-            style={{ backgroundColor: '#0084D1' }}
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-medium text-on-primary"
+ 
           >
             {index + 1}
           </div>
           <div className="flex-1">
-            <p className="font-medium text-slate-900">{question.question}</p>
-            <div className="mt-1 flex items-center gap-3 text-xs text-slate-500">
+            <p className="font-medium text-ink">{question.question}</p>
+            <div className="mt-1 flex items-center gap-3 text-xs text-muted">
               <span className="flex items-center gap-1">
                 <span className="material-symbols-outlined text-sm">
                   {question.type === 'mcq' ? 'radio_button_checked' : 'edit_note'}
@@ -328,7 +328,7 @@ function QuestionCard({ question, index }) {
         {question.type === 'mcq' && (
           <button
             onClick={() => setExpanded(!expanded)}
-            className="rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-100"
+            className="rounded-lg p-2 text-body transition-colors hover:bg-surface-card"
           >
             <span className="material-symbols-outlined text-xl">
               {expanded ? 'expand_less' : 'expand_more'}
@@ -338,24 +338,24 @@ function QuestionCard({ question, index }) {
       </div>
 
       {expanded && question.type === 'mcq' && (
-        <div className="border-t border-slate-200 bg-slate-50 p-4">
+        <div className="border-t border-hairline bg-surface-soft p-4">
           <div className="space-y-2">
             {question.options.map((option, idx) => (
               <div
                 key={idx}
-                className="flex items-center gap-2 rounded-lg border p-3 bg-white"
+                className="flex items-center gap-2 rounded-lg border p-3 bg-canvas"
                 style={
                   idx === question.correctAnswer
-                    ? { borderColor: '#0084D1', backgroundColor: '#F0F9FF' }
+                    ? {}
                     : { borderColor: '#e2e8f0' }
                 }
               >
-                <span className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-slate-300 text-xs font-medium">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-hairline text-xs font-medium">
                   {String.fromCharCode(65 + idx)}
                 </span>
-                <span className="text-sm text-slate-700">{option}</span>
+                <span className="text-sm text-body-strong">{option}</span>
                 {idx === question.correctAnswer && (
-                  <span className="ml-auto text-xs font-medium" style={{ color: '#0084D1' }}>
+                  <span className="ml-auto text-xs font-medium" >
                     ✓ Correct
                   </span>
                 )}
@@ -375,23 +375,23 @@ function PageSkeleton() {
       {/* Header Skeleton */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 animate-pulse rounded-lg bg-slate-200"></div>
+          <div className="h-10 w-10 animate-pulse rounded-lg bg-hairline"></div>
           <div>
-            <div className="h-8 w-96 animate-pulse rounded-lg bg-slate-200"></div>
-            <div className="mt-2 h-4 w-48 animate-pulse rounded bg-slate-200"></div>
+            <div className="h-8 w-96 animate-pulse rounded-lg bg-hairline"></div>
+            <div className="mt-2 h-4 w-48 animate-pulse rounded bg-hairline"></div>
           </div>
         </div>
         <div className="flex gap-2">
-          <div className="h-10 w-24 animate-pulse rounded-lg bg-slate-200"></div>
-          <div className="h-10 w-20 animate-pulse rounded-lg bg-slate-200"></div>
+          <div className="h-10 w-24 animate-pulse rounded-lg bg-hairline"></div>
+          <div className="h-10 w-20 animate-pulse rounded-lg bg-hairline"></div>
         </div>
       </div>
 
       {/* Tabs Skeleton */}
-      <div className="h-12 animate-pulse rounded-lg bg-slate-200"></div>
+      <div className="h-12 animate-pulse rounded-lg bg-hairline"></div>
 
       {/* Content Skeleton */}
-      <div className="h-96 animate-pulse rounded-2xl bg-slate-200"></div>
+      <div className="h-96 animate-pulse rounded-lg bg-hairline"></div>
     </div>
   );
 }

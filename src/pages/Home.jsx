@@ -1,24 +1,22 @@
 import {
-  HeroSection,
+  CTASection,
+  FAQSection,
   FeaturesSection,
+  HeroSection,
   HowItWorksSection,
   StatsSection,
-  FAQSection,
-  CTASection,
 } from '../components/landing';
 
 function Home() {
   return (
-    <div className="font-display text-text-light-secondary antialiased">
-      <main className="relative">
+    <div className="antialiased">
+      <main>
         <HeroSection />
-        <div className="relative bg-background-light z-10">
-          <FeaturesSection />
-          <HowItWorksSection />
-          <StatsSection />
-          <FAQSection />
-          <CTASection />
-        </div>
+        <FeaturesSection />
+        <StatsSection />
+        <HowItWorksSection />
+        <FAQSection />
+        <CTASection />
       </main>
     </div>
   );

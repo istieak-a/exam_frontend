@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { Badge, Button, Input } from '../../components/ui';
 import { useAuth } from '../../context/AuthContext';
 
 export default function Profile() {
@@ -17,7 +18,7 @@ export default function Profile() {
 
   useEffect(() => {
     if (user) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         fullName: user.fullName || '',
         email: user.email || '',
@@ -26,15 +27,13 @@ export default function Profile() {
   }, [user]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 600);
+    const timer = setTimeout(() => setIsLoading(false), 400);
     return () => clearTimeout(timer);
   }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSave = async (e) => {
@@ -42,234 +41,190 @@ export default function Profile() {
     try {
       setIsLoading(true);
       const { updateProfile } = await import('../../services/authService');
-      
       await updateProfile({
         fullName: formData.fullName,
         email: formData.email,
-        // Phone and bio are not yet supported by backend User model, but we successfully updated supported fields
       });
-      
       await refreshSession();
       setIsEditing(false);
-      // Optional: Add success toast
     } catch (error) {
       console.error('Failed to update profile:', error);
-      // Optional: Add error toast
     } finally {
       setIsLoading(false);
     }
   };
 
-  const getInitials = (name) => {
-    return name
+  const getInitials = (name) =>
+    name
       ?.split(' ')
       .map((n) => n[0])
       .join('')
       .toUpperCase()
       .slice(0, 2) || 'U';
-  };
-  
+
   const formatDate = (timestamp) => {
-    if (!timestamp) return 'N/A';
+    if (!timestamp) return '—';
     return new Date(timestamp).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
     });
   };
 
-  if (isLoading) {
-    return <PageSkeleton />;
-  }
+  if (isLoading) return <PageSkeleton />;
+
+  const isTeacher = user?.role === 'teacher';
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">My Profile</h1>
-        <p className="mt-1 text-sm text-slate-600">
-          Manage your account settings and preferences
-        </p>
-      </div>
+    <div className="space-y-8">
+      <header className="border-b border-hairline pb-6">
+        <p className="text-xs uppercase tracking-[0.15em] text-muted">Account</p>
+        <h1 className="mt-2 font-display text-[36px] leading-tight tracking-[-0.02em] text-ink md:text-[42px]">
+          Profile
+        </h1>
+        <p className="mt-2 text-sm text-muted">Account, identity, and the way you sign in.</p>
+      </header>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Profile Card */}
-        <div className="lg:col-span-1">
-          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200/80">
+      <div className="grid gap-8 lg:grid-cols-3">
+        <aside className="lg:col-span-1">
+          <div className="rounded-lg border border-hairline bg-canvas p-7">
             <div className="text-center">
-              <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-primary text-2xl font-bold text-white">
+              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-primary/15 font-display text-[32px] leading-none text-primary">
                 {getInitials(user?.fullName)}
               </div>
-              <h2 className="mt-4 text-xl font-bold text-slate-900">{user?.fullName}</h2>
-              <p className="mt-1 text-sm text-slate-600">{user?.email}</p>
-              <div className="mt-3 inline-flex items-center gap-2 rounded-lg bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary">
-                <span className="material-symbols-outlined text-base">
-                  {user?.role === 'teacher' ? 'school' : 'person'}
-                </span>
-                {user?.role === 'teacher' ? 'Teacher' : 'Student'}
-              </div>
-
-              <div className="mt-6 space-y-3">
-                <div className="flex items-center gap-3 text-left">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100">
-                    <span className="material-symbols-outlined text-slate-600">
-                      calendar_today
-                    </span>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500">Joined</p>
-                    <p className="text-sm font-medium text-slate-900">{formatDate(user?.createdAt)}</p>
-                  </div>
-                </div>
-                {user?.studentId && (
-                  <div className="flex items-center gap-3 text-left">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100">
-                      <span className="material-symbols-outlined text-slate-600">
-                        badge
-                      </span>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500">Student ID</p>
-                      <p className="text-sm font-medium text-slate-900">{user?.studentId}</p>
-                    </div>
-                  </div>
-                )}
-                {user?.department && (
-                  <div className="flex items-center gap-3 text-left">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100">
-                      <span className="material-symbols-outlined text-slate-600">
-                        domain
-                      </span>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500">Department</p>
-                      <p className="text-sm font-medium text-slate-900">{user?.department}</p>
-                    </div>
-                  </div>
-                )}
+              <h2 className="mt-5 font-display text-[24px] leading-tight tracking-[-0.015em] text-ink">
+                {user?.fullName}
+              </h2>
+              <p className="mt-1 text-sm text-muted">{user?.email}</p>
+              <div className="mt-4 inline-flex">
+                <Badge variant={isTeacher ? 'coral-soft' : 'info'} size="sm">
+                  <span className="material-symbols-outlined text-[13px]">
+                    {isTeacher ? 'school' : 'person'}
+                  </span>
+                  {isTeacher ? 'Teacher' : 'Student'}
+                </Badge>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Profile Details */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Personal Information */}
-          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200/80">
+            <div className="mt-6 space-y-3 border-t border-hairline-soft pt-5">
+              <ProfileField icon="calendar_today" label="Joined" value={formatDate(user?.createdAt)} />
+              {user?.studentId && (
+                <ProfileField icon="badge" label="Student ID" value={user.studentId} />
+              )}
+              {user?.department && (
+                <ProfileField icon="domain" label="Department" value={user.department} />
+              )}
+            </div>
+          </div>
+        </aside>
+
+        <div className="space-y-6 lg:col-span-2">
+          <section className="rounded-lg border border-hairline bg-canvas p-7">
             <div className="mb-6 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-slate-900">Personal Information</h3>
+              <h3 className="font-display text-[22px] leading-tight tracking-[-0.015em] text-ink">
+                Personal information
+              </h3>
               {!isEditing && (
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90"
-                >
-                  <span className="material-symbols-outlined text-lg">edit</span>
+                <Button variant="secondary" size="sm" onClick={() => setIsEditing(true)}>
+                  <span className="material-symbols-outlined text-[16px]">edit</span>
                   Edit
-                </button>
+                </Button>
               )}
             </div>
 
             <form onSubmit={handleSave} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700">Full Name</label>
-                <input
-                  type="text"
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Input
+                  label="Full name"
                   name="fullName"
                   value={formData.fullName}
                   onChange={handleChange}
                   disabled={!isEditing}
-                  className="mt-1 w-full rounded-lg border-0 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 ring-1 ring-slate-200/80 disabled:opacity-60 focus:bg-white focus:ring-2 focus:ring-primary"
                 />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700">Email</label>
-                <input
+                <Input
+                  label="Email"
                   type="email"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
                   disabled={!isEditing}
-                  className="mt-1 w-full rounded-lg border-0 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 ring-1 ring-slate-200/80 disabled:opacity-60 focus:bg-white focus:ring-2 focus:ring-primary"
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700">Phone Number</label>
-                <input
-                  type="tel"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  disabled={!isEditing}
-                  placeholder="Enter phone number"
-                  className="mt-1 w-full rounded-lg border-0 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 ring-1 ring-slate-200/80 disabled:opacity-60 focus:bg-white focus:ring-2 focus:ring-primary"
-                />
-              </div>
+              <Input
+                label="Phone"
+                type="tel"
+                name="phone"
+                value={formData.phone}
+                onChange={handleChange}
+                disabled={!isEditing}
+                placeholder="+1 (555) 555-5555"
+              />
 
               <div>
-                <label className="block text-sm font-medium text-slate-700">Bio</label>
+                <label className="mb-1.5 block text-sm font-medium text-ink">Bio</label>
                 <textarea
                   name="bio"
                   value={formData.bio}
                   onChange={handleChange}
                   disabled={!isEditing}
                   rows={3}
-                  placeholder="Tell us about yourself"
-                  className="mt-1 w-full rounded-lg border-0 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 ring-1 ring-slate-200/80 disabled:opacity-60 focus:bg-white focus:ring-2 focus:ring-primary"
+                  placeholder="A short paragraph about yourself…"
+                  className="w-full resize-y rounded-md border border-hairline bg-canvas px-3.5 py-2.5 text-sm text-ink placeholder:text-muted-soft transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-surface-soft disabled:text-muted"
                 />
               </div>
 
               {isEditing && (
-                <div className="flex items-center gap-3">
-                  <button
-                    type="submit"
-                    className="rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary/90"
-                  >
-                    Save Changes
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsEditing(false)}
-                    className="rounded-lg bg-slate-100 px-6 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-200"
-                  >
+                <div className="flex items-center gap-3 pt-2">
+                  <Button type="submit">Save changes</Button>
+                  <Button type="button" variant="secondary" onClick={() => setIsEditing(false)}>
                     Cancel
-                  </button>
+                  </Button>
                 </div>
               )}
             </form>
-          </div>
+          </section>
 
-          {/* Security Settings */}
-          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200/80">
-            <h3 className="mb-6 text-lg font-semibold text-slate-900">Security</h3>
-            <div className="space-y-4">
-              <button 
-                onClick={() => setIsChangePasswordOpen(true)}
-                className="flex w-full items-center justify-between rounded-lg bg-slate-50 p-4 text-left transition-colors hover:bg-slate-100"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-slate-600">lock</span>
-                  <div>
-                    <p className="font-medium text-slate-900">Change Password</p>
-                    <p className="text-sm text-slate-600">Update your password</p>
-                  </div>
+          <section className="rounded-lg border border-hairline bg-canvas p-7">
+            <h3 className="mb-5 font-display text-[22px] leading-tight tracking-[-0.015em] text-ink">
+              Security
+            </h3>
+            <button
+              onClick={() => setIsChangePasswordOpen(true)}
+              className="flex w-full items-center justify-between rounded-md border border-hairline bg-surface-soft p-4 text-left transition-colors hover:bg-surface-card"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-md bg-canvas text-ink">
+                  <span className="material-symbols-outlined text-[20px]">lock</span>
                 </div>
-                <span className="material-symbols-outlined text-slate-400">
-                  chevron_right
-                </span>
-              </button>
-            </div>
-          </div>
+                <div>
+                  <p className="text-sm font-medium text-ink">Change password</p>
+                  <p className="text-xs text-muted">Update your sign-in credentials</p>
+                </div>
+              </div>
+              <span className="material-symbols-outlined text-[18px] text-muted">chevron_right</span>
+            </button>
+          </section>
         </div>
       </div>
 
-      {/* Change Password Modal */}
       {isChangePasswordOpen && (
-        <ChangePasswordModal 
-          onClose={() => setIsChangePasswordOpen(false)} 
-        />
+        <ChangePasswordModal onClose={() => setIsChangePasswordOpen(false)} />
       )}
+    </div>
+  );
+}
+
+function ProfileField({ icon, label, value }) {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="flex h-9 w-9 items-center justify-center rounded-md bg-surface-soft text-ink">
+        <span className="material-symbols-outlined text-[18px]">{icon}</span>
+      </div>
+      <div className="min-w-0 leading-tight">
+        <p className="text-[11px] uppercase tracking-[0.12em] text-muted-soft">{label}</p>
+        <p className="truncate text-sm text-ink">{value}</p>
+      </div>
     </div>
   );
 }
@@ -283,11 +238,10 @@ function ChangePasswordModal({ onClose }) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  // const { changePassword } = require('../../services/authService'); // Removed require
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setPasswordData(prev => ({ ...prev, [name]: value }));
+    setPasswordData((prev) => ({ ...prev, [name]: value }));
     setError('');
   };
 
@@ -305,16 +259,14 @@ function ChangePasswordModal({ onClose }) {
     try {
       setIsLoading(true);
       setError('');
-      
       const { changePassword } = await import('../../services/authService');
       await changePassword(passwordData.currentPassword, passwordData.newPassword);
-      
-      setSuccess('Password changed successfully');
+      setSuccess('Password updated.');
       setTimeout(() => {
         onClose();
         setSuccess('');
         setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-      }, 1500);
+      }, 1400);
     } catch (err) {
       setError(err.message || 'Failed to change password');
     } finally {
@@ -323,80 +275,64 @@ function ChangePasswordModal({ onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl ring-1 ring-slate-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-lg border border-hairline bg-canvas p-7 shadow-xl">
         <div className="mb-6 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-slate-900">Change Password</h3>
-          <button 
+          <h3 className="font-display text-[22px] leading-tight tracking-[-0.015em] text-ink">
+            Change password
+          </h3>
+          <button
             onClick={onClose}
-            className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            className="rounded-md p-1.5 text-muted transition-colors hover:bg-surface-soft hover:text-ink"
           >
-            <span className="material-symbols-outlined">close</span>
+            <span className="material-symbols-outlined text-[18px]">close</span>
           </button>
         </div>
 
         {error && (
-          <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-600">
+          <div className="mb-4 rounded-md border border-error/30 bg-error/10 p-3 text-xs text-[#8a3636]">
             {error}
           </div>
         )}
-
         {success && (
-          <div className="mb-4 rounded-lg bg-green-50 p-3 text-sm text-green-600">
+          <div className="mb-4 rounded-md border border-success/30 bg-success/15 p-3 text-xs text-[#2f6e3d]">
             {success}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700">Current Password</label>
-            <input
-              type="password"
-              name="currentPassword"
-              value={passwordData.currentPassword}
-              onChange={handleChange}
-              required
-              className="mt-1 w-full rounded-lg border-slate-200 bg-slate-50 px-4 py-2.5 text-sm ring-1 ring-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700">New Password</label>
-            <input
-              type="password"
-              name="newPassword"
-              value={passwordData.newPassword}
-              onChange={handleChange}
-              required
-              className="mt-1 w-full rounded-lg border-slate-200 bg-slate-50 px-4 py-2.5 text-sm ring-1 ring-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700">Confirm New Password</label>
-            <input
-              type="password"
-              name="confirmPassword"
-              value={passwordData.confirmPassword}
-              onChange={handleChange}
-              required
-              className="mt-1 w-full rounded-lg border-slate-200 bg-slate-50 px-4 py-2.5 text-sm ring-1 ring-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-          </div>
+          <Input
+            label="Current password"
+            type="password"
+            name="currentPassword"
+            value={passwordData.currentPassword}
+            onChange={handleChange}
+            required
+          />
+          <Input
+            label="New password"
+            type="password"
+            name="newPassword"
+            value={passwordData.newPassword}
+            onChange={handleChange}
+            required
+          />
+          <Input
+            label="Confirm new password"
+            type="password"
+            name="confirmPassword"
+            value={passwordData.confirmPassword}
+            onChange={handleChange}
+            required
+          />
 
           <div className="mt-6 flex justify-end gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
-            >
+            <Button type="button" variant="ghost" onClick={onClose}>
               Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50"
-            >
-              {isLoading ? 'Saving...' : 'Update Password'}
-            </button>
+            </Button>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? 'Saving…' : 'Update password'}
+            </Button>
           </div>
         </form>
       </div>
@@ -406,16 +342,17 @@ function ChangePasswordModal({ onClose }) {
 
 function PageSkeleton() {
   return (
-    <div className="space-y-6">
-      <div>
-        <div className="h-8 w-48 rounded bg-slate-200 animate-pulse" />
-        <div className="mt-2 h-4 w-64 rounded bg-slate-200 animate-pulse" />
+    <div className="space-y-8">
+      <div className="space-y-2 border-b border-hairline pb-6">
+        <div className="h-3 w-20 animate-pulse rounded bg-hairline" />
+        <div className="h-10 w-48 animate-pulse rounded bg-hairline" />
+        <div className="h-3 w-64 animate-pulse rounded bg-hairline" />
       </div>
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="h-[400px] rounded-2xl bg-slate-200 animate-pulse" />
-        <div className="lg:col-span-2 space-y-6">
-          <div className="h-[400px] rounded-2xl bg-slate-200 animate-pulse" />
-          <div className="h-[200px] rounded-2xl bg-slate-200 animate-pulse" />
+      <div className="grid gap-8 lg:grid-cols-3">
+        <div className="h-[360px] animate-pulse rounded-lg bg-hairline" />
+        <div className="space-y-6 lg:col-span-2">
+          <div className="h-[360px] animate-pulse rounded-lg bg-hairline" />
+          <div className="h-[120px] animate-pulse rounded-lg bg-hairline" />
         </div>
       </div>
     </div>

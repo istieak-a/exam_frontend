@@ -8,9 +8,9 @@ function RootLayout() {
   const isHomePage = location.pathname === '/';
 
   return (
-    <div className={`min-h-screen ${isAuthPage ? '' : 'bg-background-light'}`}>
+    <div className="min-h-screen bg-canvas text-body">
       <Navbar />
-      <main className={isHomePage || isAuthPage ? '' : 'pt-20 lg:pt-24'}>
+      <main className={isHomePage || isAuthPage ? '' : 'pt-16'}>
         <Outlet />
       </main>
       {!isAuthPage && <Footer />}
