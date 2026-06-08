@@ -46,9 +46,11 @@ export default function ExamResult() {
     );
   }
 
-  const isPassed = submission.totalScore != null && submission.maxScore > 0
+  const isPending = submission.status !== 'FULLY_GRADED';
+
+  const isPassed = !isPending && submission.maxScore > 0
     && submission.totalScore >= (exam?.passingMarks ?? submission.maxScore * 0.5);
-  const pct = submission.maxScore > 0
+  const pct = !isPending && submission.maxScore > 0
     ? ((submission.totalScore / submission.maxScore) * 100).toFixed(1)
     : '—';
 
@@ -58,7 +60,6 @@ export default function ExamResult() {
   });
 
   const questions = exam?.questions || [];
-  const isPending = submission.status === 'SUBMITTED';
 
   return (
     <div className="space-y-6">
@@ -88,9 +89,9 @@ export default function ExamResult() {
       }`}>
         {isPending ? (
           <>
-            <span className="material-symbols-outlined text-5xl text-[#7a5a0e]">pending_actions</span>
-            <h2 className="mt-3 font-display text-[28px] tracking-tight text-ink">Pending Review</h2>
-            <p className="mt-2 text-body">Your teacher is reviewing your answers. Check back later.</p>
+            <span className="material-symbols-outlined text-5xl text-[#7a5a0e]">rate_review</span>
+            <h2 className="mt-3 font-display text-[28px] tracking-tight text-ink">Waiting for CQ Review</h2>
+            <p className="mt-2 text-body">Your answers have been submitted. Your teacher will review and grade them soon.</p>
           </>
         ) : (
           <>
@@ -116,7 +117,7 @@ export default function ExamResult() {
       {!isPending && (
         <div className="grid gap-4 sm:grid-cols-3">
           <StatItem icon="military_tech" label="Score" value={`${submission.totalScore}/${submission.maxScore}`} />
-          {submission.mcqScore != null && (
+          {submission.mcqScore > 0 && (
             <StatItem icon="radio_button_checked" label="MCQ Score" value={`${submission.mcqScore}`} />
           )}
           {submission.submittedAt && (
@@ -136,7 +137,7 @@ export default function ExamResult() {
             const answered = !!a.answer;
             const awarded = a.awardedMarks;
             const isMcq = (q.type || '').toUpperCase() === 'MCQ';
-            const isCorrect = isMcq && answered && a.answer?.trim().toLowerCase() === (q.correctAnswer || '').trim().toLowerCase();
+            const isCorrect = !isPending && isMcq && answered && a.answer?.trim().toLowerCase() === (q.correctAnswer || '').trim().toLowerCase();
 
             return (
               <div key={q.id} className="rounded-lg border border-hairline bg-canvas p-5">
@@ -157,7 +158,7 @@ export default function ExamResult() {
                       <p className="text-sm text-ink">{a.answer || <span className="text-muted-soft italic">No answer</span>}</p>
                     </div>
 
-                    {isMcq && !isPending && q.correctAnswer && (
+                    {!isPending && isMcq && q.correctAnswer && (
                       <div className="mt-2 rounded-lg bg-success/5 p-3 border border-success/25">
                         <p className="text-xs font-semibold uppercase tracking-wide text-[#2f6e3d] mb-1">Correct Answer:</p>
                         <p className="text-sm text-[#2f6e3d]">{q.correctAnswer}</p>
@@ -168,6 +169,10 @@ export default function ExamResult() {
                       <p className="mt-2 text-sm font-medium text-primary">
                         Awarded: {awarded}/{q.marks}
                       </p>
+                    )}
+
+                    {isPending && !isMcq && (
+                      <p className="mt-2 text-xs text-[#7a5a0e]">Awaiting teacher grading</p>
                     )}
                   </div>
                 </div>

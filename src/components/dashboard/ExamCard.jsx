@@ -78,15 +78,14 @@ export function ExamCard({ exam, role = 'student' }) {
       </div>
 
       <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Stat icon="quiz" label="Questions" value={totalQuestions} />
-        <Stat icon="schedule" label="Duration" value={`${duration || 0} min`} />
+        {totalQuestions > 0 && <Stat icon="quiz" label="Questions" value={totalQuestions} />}
+        {duration > 0 && <Stat icon="schedule" label="Duration" value={`${duration} min`} />}
         <Stat icon="star" label="Total marks" value={exam.totalMarks || exam.maxScore} />
         {role === 'teacher' && exam.submissions !== undefined && (
           <Stat icon="people" label="Submissions" value={exam.submissions} />
         )}
-        {role === 'student' &&
-          (exam.totalScore !== undefined || exam.score !== undefined) &&
-          examStatus === 'graded' && (
+        {role === 'student' && examStatus === 'graded' &&
+          (exam.totalScore !== undefined || exam.score !== undefined) && (
             <Stat
               icon="grade"
               label="Your score"
@@ -94,6 +93,9 @@ export function ExamCard({ exam, role = 'student' }) {
               valueClass="text-primary font-medium"
             />
           )}
+        {role === 'student' && examStatus === 'pending' && (
+          <Stat icon="rate_review" label="Status" value="Waiting for CQ review" valueClass="text-[#7a5a0e]" />
+        )}
       </div>
 
       {(exam.startDateTime || exam.startDate || exam.endDateTime || exam.dueDate || exam.submittedAt) && (

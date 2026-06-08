@@ -7,7 +7,7 @@ import { examApi } from '../../services/api';
 function adaptSubmissionForCard(sub) {
   const statusMap = {
     SUBMITTED: 'pending',
-    GRADED_MCQ: 'graded',
+    GRADED_MCQ: 'pending',
     FULLY_GRADED: 'graded',
   };
   return {
@@ -34,7 +34,7 @@ export default function MyExams() {
   const adapted = submissions.map(adaptSubmissionForCard);
 
   const completedExams = adapted.filter((s) => s.status === 'graded');
-  const ongoingExams = adapted.filter((s) => s.status === 'pending');
+  const ongoingExams = adapted.filter((s) => s.status === 'pending' || s.status === 'in-review');
 
   const list = activeTab === 'completed' ? completedExams : ongoingExams;
 
