@@ -3,10 +3,13 @@
 import { useEffect, useState } from 'react';
 import { Badge, Button, Input } from '../../components/ui';
 import { useAuth } from '../../context/AuthContext';
+import { authApi } from '../../services/api';
 
 export default function Profile() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const [saving, setSaving] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [formData, setFormData] = useState({
     fullName: user?.fullName || '',
@@ -30,9 +33,19 @@ export default function Profile() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
-    setIsEditing(false);
+    setSaveError('');
+    setSaving(true);
+    try {
+      await authApi.updateProfile(formData.fullName, formData.email);
+      await refreshUser();
+      setIsEditing(false);
+    } catch (err) {
+      setSaveError(err.message || 'Failed to save profile.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const getInitials = (name) =>
@@ -153,10 +166,13 @@ export default function Profile() {
                 />
               </div>
 
+              {saveError && (
+                <p className="text-sm text-error">{saveError}</p>
+              )}
               {isEditing && (
                 <div className="flex items-center gap-3 pt-2">
-                  <Button type="submit">Save changes</Button>
-                  <Button type="button" variant="secondary" onClick={() => setIsEditing(false)}>
+                  <Button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save changes'}</Button>
+                  <Button type="button" variant="secondary" onClick={() => { setIsEditing(false); setSaveError(''); }}>
                     Cancel
                   </Button>
                 </div>
@@ -223,7 +239,7 @@ function ChangePasswordModal({ onClose }) {
     setError('');
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       setError('New passwords do not match');
@@ -233,14 +249,18 @@ function ChangePasswordModal({ onClose }) {
       setError('Password must be at least 6 characters');
       return;
     }
-
     setError('');
-    setSuccess('Password updated.');
-    setTimeout(() => {
-      onClose();
-      setSuccess('');
-      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-    }, 1400);
+    try {
+      await authApi.changePassword(passwordData.currentPassword, passwordData.newPassword);
+      setSuccess('Password updated successfully.');
+      setTimeout(() => {
+        onClose();
+        setSuccess('');
+        setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      }, 1400);
+    } catch (err) {
+      setError(err.message || 'Failed to change password.');
+    }
   };
 
   return (

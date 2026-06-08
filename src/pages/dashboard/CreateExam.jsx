@@ -2,18 +2,17 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import {
-  teacherExams as mockTeacherExams,
-  examQuestions as mockExamQuestions,
-} from '../../data/mockData';
+import { examApi, buildExamPayload, parseExamForForm } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 
 export default function CreateExam() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const editId = searchParams.get('edit');
   const isEditMode = !!editId;
 
-  const [examType, setExamType] = useState('mcq'); // 'mcq' or 'cq'
+  const [examType, setExamType] = useState('mcq');
   const [examData, setExamData] = useState({
     title: '',
     course: '',
@@ -29,25 +28,17 @@ export default function CreateExam() {
   const [questions, setQuestions] = useState([]);
   const [showQuestionForm, setShowQuestionForm] = useState(false);
   const [errors, setErrors] = useState({});
+  const [apiError, setApiError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (!isEditMode) return;
-    const exam = mockTeacherExams.find((e) => e.id === editId);
-    if (!exam) return;
-    setExamData({
-      title: exam.title || '',
-      course: exam.course || '',
-      description: exam.description || '',
-      duration: (exam.duration ?? exam.durationMinutes ?? '').toString(),
-      totalMarks: (exam.totalMarks ?? '').toString(),
-      passingMarks: (exam.passingMarks ?? '').toString(),
-      startDate: exam.startDate || '',
-      startTime: exam.startTime || '',
-      endDate: exam.endDate || exam.dueDate || '',
-      endTime: exam.endTime || '',
-    });
-    setQuestions(mockExamQuestions[editId] || []);
-    setExamType((exam.examType || 'mcq').toLowerCase());
+    examApi.getExam(editId).then((exam) => {
+      const parsed = parseExamForForm(exam);
+      setExamData(parsed.examData);
+      setQuestions(parsed.questions);
+      setExamType(parsed.examType);
+    }).catch(() => {});
   }, [editId, isEditMode]);
 
   const handleInputChange = (e) => {
@@ -148,10 +139,26 @@ export default function CreateExam() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
-    navigate(isEditMode ? `/dashboard/exam/${editId}` : '/dashboard/exams');
+    setApiError('');
+    setIsSubmitting(true);
+    try {
+      const payload = buildExamPayload(examData, questions, examType);
+      payload.teacherName = user?.name || user?.fullName || '';
+      if (isEditMode) {
+        await examApi.updateExam(editId, payload);
+        navigate(`/dashboard/exam/${editId}`);
+      } else {
+        await examApi.createExam(payload);
+        navigate('/dashboard/exams');
+      }
+    } catch (err) {
+      setApiError(err.message || 'Failed to save exam.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -178,12 +185,13 @@ export default function CreateExam() {
           </button>
           <button
             onClick={handleSubmit}
-            className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-5 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active"
+            disabled={isSubmitting}
+            className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-5 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active disabled:opacity-60"
           >
             <span className="material-symbols-outlined text-xl">
               {isEditMode ? 'save' : 'check_circle'}
             </span>
-            {isEditMode ? 'Update Exam' : 'Publish Exam'}
+            {isSubmitting ? 'Saving…' : isEditMode ? 'Update Exam' : 'Publish Exam'}
           </button>
         </div>
       </div>
@@ -439,6 +447,12 @@ export default function CreateExam() {
           </div>
         </div>
       </div>
+
+      {apiError && (
+        <div className="rounded-lg border border-error/30 bg-error/10 px-4 py-3 text-sm text-error">
+          {apiError}
+        </div>
+      )}
 
       {/* Questions Section */}
       <div className={`rounded-lg bg-canvas p-6 shadow-sm border ${

@@ -77,6 +77,8 @@ function Signup() {
     agreeToTerms: false,
   });
   const [errors, setErrors] = useState({});
+  const [apiError, setApiError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -113,17 +115,25 @@ function Signup() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
-    signup(
-      formData.username,
-      formData.email,
-      formData.password,
-      formData.fullName,
-      formData.role,
-    );
-    navigate('/dashboard');
+    setApiError('');
+    setIsSubmitting(true);
+    try {
+      await signup(
+        formData.username,
+        formData.fullName,
+        formData.email,
+        formData.password,
+        formData.role,
+      );
+      navigate('/dashboard');
+    } catch (err) {
+      setApiError(err.message || 'Registration failed. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleSocialSignup = (provider) => {
@@ -260,8 +270,14 @@ function Signup() {
               )}
             </div>
 
-            <Button type="submit" className="w-full" size="lg">
-              Create account
+            {apiError && (
+              <p className="rounded-lg border border-error/30 bg-error/10 px-4 py-2.5 text-sm text-error">
+                {apiError}
+              </p>
+            )}
+
+            <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
+              {isSubmitting ? 'Creating account…' : 'Create account'}
             </Button>
           </form>
 

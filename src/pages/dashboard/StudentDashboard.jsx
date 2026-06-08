@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ExamCard,
@@ -7,10 +8,7 @@ import {
   StatCard,
 } from '../../components/dashboard';
 import { useAuth } from '../../context/AuthContext';
-import {
-  availableExams as mockAvailableExams,
-  completedExams as mockCompletedExams,
-} from '../../data/mockData';
+import { examApi } from '../../services/api';
 
 function UpcomingExamItem({ exam }) {
   const formatDate = (exam) => {
@@ -66,20 +64,21 @@ function UpcomingExamItem({ exam }) {
 
 export default function StudentDashboard() {
   const { user } = useAuth();
-  const availableExams = mockAvailableExams;
+  const [availableExams, setAvailableExams] = useState([]);
+  const [mySubmissions, setMySubmissions] = useState([]);
 
-  const completedCount = mockCompletedExams.filter(
-    (s) => s.status === 'graded' || s.status === 'completed',
+  useEffect(() => {
+    examApi.getPublished(0, 50).then((d) => setAvailableExams(d.content || [])).catch(() => {});
+    examApi.getMySubmissions(0, 50).then((d) => setMySubmissions(d.content || [])).catch(() => {});
+  }, []);
+
+  const completedCount = mySubmissions.filter((s) => s.status === 'FULLY_GRADED').length;
+  const pendingCount = mySubmissions.filter(
+    (s) => s.status === 'SUBMITTED' || s.status === 'GRADED_MCQ',
   ).length;
-  const pendingCount = mockCompletedExams.filter(
-    (s) => s.status === 'pending' || s.status === 'in-review',
-  ).length;
-  const gradedSubmissions = mockCompletedExams.filter((s) => s.score != null);
+  const gradedSubmissions = mySubmissions.filter((s) => s.status === 'FULLY_GRADED' && s.maxScore > 0);
   const avgScore = gradedSubmissions.length
-    ? gradedSubmissions.reduce(
-        (sum, s) => sum + (s.totalMarks ? (s.score / s.totalMarks) * 100 : 0),
-        0,
-      ) / gradedSubmissions.length
+    ? gradedSubmissions.reduce((sum, s) => sum + (s.totalScore / s.maxScore) * 100, 0) / gradedSubmissions.length
     : 0;
 
   const stats = {
@@ -89,14 +88,9 @@ export default function StudentDashboard() {
     pendingResults: pendingCount,
   };
 
-  const upcomingExams = availableExams
-    .filter((exam) => {
-      const status = (exam.status || '').toLowerCase();
-      return status === 'published' || (status === 'active' && exam.startDateTime > Date.now());
-    })
-    .slice(0, 3);
+  const upcomingExams = availableExams.slice(0, 3);
 
-  const firstName = user?.name?.split(' ')[0] || 'there';
+  const firstName = user?.name?.split(' ')[0] || user?.fullName?.split(' ')[0] || 'there';
 
   return (
     <div className="space-y-10">

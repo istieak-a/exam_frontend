@@ -1,24 +1,27 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ExamCard } from '../../components/dashboard';
-import { availableExams as mockAvailableExams } from '../../data/mockData';
+import { examApi } from '../../services/api';
 
 export default function AvailableExams() {
-  const [exams] = useState(mockAvailableExams);
+  const [exams, setExams] = useState([]);
+
+  useEffect(() => {
+    examApi.getPublished(0, 100).then((d) => setExams(d.content || [])).catch(() => {});
+  }, []);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterDifficulty, setFilterDifficulty] = useState('all');
 
   const filteredExams = exams.filter((exam) => {
-    const course = exam.course || exam.subject || '';
+    const course = exam.course || '';
     const matchesSearch =
       exam.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       course.toLowerCase().includes(searchQuery.toLowerCase());
-    const status = exam.status?.toLowerCase();
+    const status = (exam.status || '').toLowerCase();
     const matchesStatus = filterStatus === 'all' || status === filterStatus;
-    const matchesDifficulty = filterDifficulty === 'all' || exam.difficulty === filterDifficulty;
-    return matchesSearch && matchesStatus && matchesDifficulty;
+    return matchesSearch && matchesStatus;
   });
 
   return (

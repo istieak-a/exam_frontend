@@ -1,34 +1,48 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import {
-  teacherExams as mockTeacherExams,
-  availableExams as mockAvailableExams,
-  examQuestions as mockExamQuestions,
-} from '../../data/mockData';
+import { examApi } from '../../services/api';
 
 export default function ExamDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-
-  const exam =
-    mockTeacherExams.find((e) => e.id === id) ||
-    mockAvailableExams.find((e) => e.id === id) ||
-    null;
-  const questions = mockExamQuestions[id] || [];
+  const [exam, setExam] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
 
-  const handleDelete = () => {
+  useEffect(() => {
+    examApi.getExam(id)
+      .then(setExam)
+      .catch(() => setExam(null))
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  const questions = exam?.questions || [];
+
+  const handleDelete = async () => {
     if (!window.confirm('Are you sure you want to delete this exam? This action cannot be undone.')) {
       return;
     }
-    navigate('/dashboard/exams');
+    try {
+      await examApi.deleteExam(id);
+      navigate('/dashboard/exams');
+    } catch (err) {
+      alert(err.message || 'Failed to delete exam.');
+    }
   };
 
   const handlePublish = () => {
     navigate('/dashboard/exams');
   };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-hairline border-t-primary" />
+      </div>
+    );
+  }
 
   if (!exam) {
     return (
@@ -297,27 +311,23 @@ function QuestionCard({ question, index }) {
       {expanded && isMcq && (
         <div className="border-t border-hairline bg-surface-soft p-4">
           <div className="space-y-2">
-            {question.options.map((option, idx) => (
-              <div
-                key={idx}
-                className="flex items-center gap-2 rounded-lg border p-3 bg-canvas"
-                style={
-                  idx === question.correctAnswer
-                    ? {}
-                    : { borderColor: '#e2e8f0' }
-                }
-              >
-                <span className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-hairline text-xs font-medium">
-                  {String.fromCharCode(65 + idx)}
-                </span>
-                <span className="text-sm text-body-strong">{option}</span>
-                {idx === question.correctAnswer && (
-                  <span className="ml-auto text-xs font-medium" >
-                    ✓ Correct
+            {(question.options || []).map((option, idx) => {
+              const isCorrect = option?.trim().toLowerCase() === (question.correctAnswer || '').trim().toLowerCase();
+              return (
+                <div
+                  key={idx}
+                  className={`flex items-center gap-2 rounded-lg border p-3 bg-canvas ${isCorrect ? 'border-success/40 bg-success/5' : ''}`}
+                >
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-hairline text-xs font-medium">
+                    {String.fromCharCode(65 + idx)}
                   </span>
-                )}
-              </div>
-            ))}
+                  <span className="text-sm text-body-strong">{option}</span>
+                  {isCorrect && (
+                    <span className="ml-auto text-xs font-medium text-[#2f6e3d]">✓ Correct</span>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

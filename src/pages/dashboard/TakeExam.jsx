@@ -2,12 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import {
-  availableExams as mockAvailableExams,
-  examQuestions as mockExamQuestions,
-} from '../../data/mockData';
+import { examApi } from '../../services/api';
 
-// Default exam instructions when none provided
 const defaultInstructions = [
   'Read all questions carefully before answering',
   'Each question carries the marks shown',
@@ -20,25 +16,27 @@ export default function TakeExam() {
   const { id: examId } = useParams();
   const navigate = useNavigate();
 
-  const baseExam = mockAvailableExams.find((e) => e.id === examId) || null;
-  const exam = baseExam
-    ? { ...baseExam, questions: mockExamQuestions[examId] || [] }
-    : null;
-  const error = !exam ? 'Exam not found' : null;
-
-  // State for exam taking
+  const [exam, setExam] = useState(null);
+  const [loadError, setLoadError] = useState('');
   const [showInstructions, setShowInstructions] = useState(true);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState({});
-  const [timeRemaining, setTimeRemaining] = useState(
-    (exam?.duration || exam?.durationMinutes || 60) * 60,
-  );
+  const [timeRemaining, setTimeRemaining] = useState(60 * 60);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    examApi.getExam(examId)
+      .then((e) => {
+        setExam(e);
+        setTimeRemaining((e.durationMinutes || 60) * 60);
+      })
+      .catch((err) => setLoadError(err.message || 'Failed to load exam.'));
+  }, [examId]);
 
   // Countdown timer
   useEffect(() => {
     if (showInstructions || !exam) return;
-
     const interval = setInterval(() => {
       setTimeRemaining((prev) => {
         if (prev <= 1) {
@@ -48,24 +46,23 @@ export default function TakeExam() {
         return prev - 1;
       });
     }, 1000);
-
     return () => clearInterval(interval);
   }, [showInstructions, exam]);
 
-  // Format exam questions for component use
-  const formattedQuestions = exam?.questions?.map((q, index) => ({
-    id: q.id || `q${index + 1}`,
-    question: q.questionText || q.question,
+  // Format exam questions — options as {id: optionText, text: optionText}
+  const formattedQuestions = (exam?.questions || []).map((q) => ({
+    id: q.id,
+    question: q.questionText,
     marks: q.marks,
-    type: q.type?.toLowerCase() || exam.examType?.toLowerCase() || 'mcq',
-    options: q.type?.toLowerCase() === 'mcq' ? 
-      (q.options?.map((opt, i) => ({ id: String.fromCharCode(97 + i), text: opt })) || []) : 
-      undefined,
-    correctAnswer: q.correctAnswer, // This won't be used in the taking interface
-    minWords: q.minWords || 50 // Default minimum words for CQ questions
-  })) || [];
+    type: (q.type || exam?.examType || 'MCQ').toLowerCase() === 'mcq' ? 'mcq' : 'cq',
+    options: (q.type || '').toUpperCase() === 'MCQ'
+      ? (q.options || []).map((opt) => ({ id: opt, text: opt }))
+      : undefined,
+    minWords: 50,
+  }));
 
-  const examInstructions = exam?.instructions || defaultInstructions;
+  const examInstructions = defaultInstructions;
+  const error = loadError;
 
   const formatTime = (seconds) => {
     const hours = Math.floor(seconds / 3600);
@@ -99,14 +96,30 @@ export default function TakeExam() {
     setCurrentQuestionIndex(index);
   };
 
+  const doSubmit = useCallback(async () => {
+    setSubmitting(true);
+    try {
+      // Build answers: { [questionId as string]: answerText }
+      const payload = {};
+      Object.entries(answers).forEach(([qId, ans]) => {
+        payload[String(qId)] = String(ans);
+      });
+      const submission = await examApi.submitExam(examId, payload);
+      navigate(`/dashboard/exam-result/${submission.id}`);
+    } catch (err) {
+      alert(err.message || 'Failed to submit exam. Please try again.');
+      setSubmitting(false);
+    }
+  }, [answers, examId, navigate]);
+
   const handleSubmit = useCallback(() => {
     setShowSubmitConfirm(false);
-    navigate(`/dashboard/exam-result/${examId}?type=${exam?.examType?.toLowerCase() || 'mcq'}`);
-  }, [exam, examId, navigate]);
+    doSubmit();
+  }, [doSubmit]);
 
   const handleAutoSubmit = useCallback(() => {
-    handleSubmit();
-  }, [handleSubmit]);
+    doSubmit();
+  }, [doSubmit]);
 
   const getQuestionStatus = (questionId) => {
     if (answers[questionId]) {
@@ -118,6 +131,15 @@ export default function TakeExam() {
   const getAnsweredCount = () => {
     return Object.keys(answers).length;
   };
+
+  // Loading state
+  if (!exam && !error) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-hairline border-t-primary" />
+      </div>
+    );
+  }
 
   // Error state
   if (error || !exam) {
@@ -153,7 +175,7 @@ export default function TakeExam() {
             <div className="rounded-lg bg-surface-soft p-4 text-center">
               <span className="material-symbols-outlined text-2xl text-body">schedule</span>
               <p className="mt-2 text-sm text-body">Duration</p>
-              <p className="font-display text-[20px] leading-tight tracking-[-0.015em] text-ink">{exam.duration} min</p>
+              <p className="font-display text-[20px] leading-tight tracking-[-0.015em] text-ink">{exam.durationMinutes} min</p>
             </div>
             <div className="rounded-lg bg-surface-soft p-4 text-center">
               <span className="material-symbols-outlined text-2xl text-body">quiz</span>
@@ -448,9 +470,10 @@ export default function TakeExam() {
               </button>
               <button
                 onClick={handleSubmit}
-                className="inline-flex h-10 flex-1 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active"
+                disabled={submitting}
+                className="inline-flex h-10 flex-1 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active disabled:opacity-60"
               >
-                Submit
+                {submitting ? 'Submitting…' : 'Submit'}
               </button>
             </div>
           </div>

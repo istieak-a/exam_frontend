@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ExamCard,
@@ -7,11 +8,7 @@ import {
   StatCard,
 } from '../../components/dashboard';
 import { useAuth } from '../../context/AuthContext';
-import {
-  submissions as mockSubmissions,
-  teacherActivity,
-  teacherExams as mockTeacherExams,
-} from '../../data/mockData';
+import { examApi } from '../../services/api';
 
 function ActivityItem({ activity }) {
   return (
@@ -29,16 +26,21 @@ function ActivityItem({ activity }) {
 
 export default function TeacherDashboard() {
   const { user } = useAuth();
-  const exams = mockTeacherExams;
-  const activity = teacherActivity;
+  const [exams, setExams] = useState([]);
+  const [submissions, setSubmissions] = useState([]);
 
-  const activeCount = exams.filter((e) => (e.status || '').toLowerCase() === 'active').length;
-  const pendingCount = mockSubmissions.filter(
-    (s) => s.status === 'pending' || s.status === 'in-review',
+  useEffect(() => {
+    examApi.getMyExams(0, 10).then((d) => setExams(d.content || [])).catch(() => {});
+    examApi.getSubmissions(0, 50).then((d) => setSubmissions(d.content || [])).catch(() => {});
+  }, []);
+
+  const activeCount = exams.filter((e) => (e.status || '').toUpperCase() === 'ACTIVE').length;
+  const pendingCount = submissions.filter(
+    (s) => s.status === 'SUBMITTED' || s.status === 'GRADED_MCQ',
   ).length;
-  const gradedSubmissions = mockSubmissions.filter((s) => s.totalScore !== undefined);
+  const gradedSubmissions = submissions.filter((s) => s.status === 'FULLY_GRADED' && s.maxScore > 0);
   const avgScore = gradedSubmissions.length
-    ? gradedSubmissions.reduce((sum, s) => sum + (s.percentage || 0), 0) / gradedSubmissions.length
+    ? gradedSubmissions.reduce((sum, s) => sum + ((s.totalScore / s.maxScore) * 100), 0) / gradedSubmissions.length
     : 0;
 
   const stats = {
@@ -48,7 +50,7 @@ export default function TeacherDashboard() {
     averageScore: avgScore.toFixed(1),
   };
 
-  const firstName = user?.name?.split(' ')[0] || 'professor';
+  const firstName = user?.name?.split(' ')[0] || user?.fullName?.split(' ')[0] || 'professor';
 
   return (
     <div className="space-y-10">
@@ -170,17 +172,24 @@ export default function TeacherDashboard() {
 
         <aside>
           <h2 className="mb-5 font-display text-[24px] leading-tight tracking-[-0.015em] text-ink">
-            Recent activity
+            Recent submissions
           </h2>
           <div className="rounded-lg border border-hairline bg-canvas p-3">
-            {activity.length > 0 ? (
+            {submissions.length > 0 ? (
               <div className="space-y-1">
-                {activity.map((item, index) => (
-                  <ActivityItem key={index} activity={item} />
+                {submissions.slice(0, 5).map((s) => (
+                  <ActivityItem
+                    key={s.id}
+                    activity={{
+                      icon: s.status === 'FULLY_GRADED' ? 'check_circle' : 'pending_actions',
+                      title: `${s.studentName} — ${s.examTitle}`,
+                      time: s.submittedAt ? new Date(s.submittedAt).toLocaleDateString() : '',
+                    }}
+                  />
                 ))}
               </div>
             ) : (
-              <p className="px-3 py-8 text-center text-sm text-muted">No recent activity.</p>
+              <p className="px-3 py-8 text-center text-sm text-muted">No submissions yet.</p>
             )}
           </div>
         </aside>

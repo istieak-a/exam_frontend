@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button, Checkbox, Input, SpikeMark } from '../components/ui';
 import { useAuth } from '../context/AuthContext';
 
+
 function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -13,6 +14,8 @@ function Login() {
     role: 'TEACHER',
   });
   const [errors, setErrors] = useState({});
+  const [apiError, setApiError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -33,11 +36,19 @@ function Login() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
-    login(formData.email, formData.password, formData.role);
-    navigate('/dashboard');
+    setApiError('');
+    setIsSubmitting(true);
+    try {
+      await login(formData.email, formData.password);
+      navigate('/dashboard');
+    } catch (err) {
+      setApiError(err.message || 'Login failed. Check your email and password.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleSocialLogin = (provider) => {
@@ -124,8 +135,14 @@ function Login() {
               </Link>
             </div>
 
-            <Button type="submit" className="w-full" size="lg">
-              Sign in
+            {apiError && (
+              <p className="rounded-lg border border-error/30 bg-error/10 px-4 py-2.5 text-sm text-error">
+                {apiError}
+              </p>
+            )}
+
+            <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
+              {isSubmitting ? 'Signing in…' : 'Sign in'}
             </Button>
           </form>
 

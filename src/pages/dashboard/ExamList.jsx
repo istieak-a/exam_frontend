@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Badge } from '../../components/ui';
 import { StatCard } from '../../components/dashboard';
-import { teacherExams as mockTeacherExams } from '../../data/mockData';
+import { examApi } from '../../services/api';
 
 const statusBadge = {
   draft: 'pill',
@@ -21,26 +21,30 @@ const difficultyTone = {
 };
 
 export default function ExamList() {
-  const [exams] = useState(mockTeacherExams);
+  const [exams, setExams] = useState([]);
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    examApi.getMyExams(0, 100).then((d) => setExams(d.content || [])).catch(() => {});
+  }, []);
 
   const filteredExams = exams.filter((exam) => {
     const status = (exam.status || '').toLowerCase();
     const matchesStatus = filterStatus === 'all' || status === filterStatus;
     const matchesSearch =
       exam.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (exam.course || exam.subject || '').toLowerCase().includes(searchQuery.toLowerCase());
+      (exam.course || '').toLowerCase().includes(searchQuery.toLowerCase());
     return matchesStatus && matchesSearch;
   });
 
   const stats = {
     all: exams.length,
-    draft: exams.filter((e) => e.status?.toLowerCase() === 'draft').length,
-    published: exams.filter((e) => e.status?.toLowerCase() === 'published').length,
-    active: exams.filter((e) => e.status?.toLowerCase() === 'active').length,
-    completed: exams.filter((e) => e.status?.toLowerCase() === 'completed').length,
-    archived: exams.filter((e) => e.status?.toLowerCase() === 'archived').length,
+    draft: exams.filter((e) => e.status === 'DRAFT').length,
+    published: exams.filter((e) => e.status === 'PUBLISHED').length,
+    active: exams.filter((e) => e.status === 'ACTIVE').length,
+    completed: exams.filter((e) => e.status === 'COMPLETED').length,
+    archived: exams.filter((e) => e.status === 'ARCHIVED').length,
   };
 
   const tabs = [

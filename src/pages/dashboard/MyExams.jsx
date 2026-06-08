@@ -1,23 +1,40 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ExamCard } from '../../components/dashboard';
-import { completedExams as mockCompletedExams } from '../../data/mockData';
+import { examApi } from '../../services/api';
+
+function adaptSubmissionForCard(sub) {
+  const statusMap = {
+    SUBMITTED: 'pending',
+    GRADED_MCQ: 'graded',
+    FULLY_GRADED: 'graded',
+  };
+  return {
+    id: sub.id,
+    examId: sub.examId,
+    title: sub.examTitle,
+    examType: sub.examType,
+    totalMarks: sub.maxScore,
+    maxScore: sub.maxScore,
+    totalScore: sub.totalScore,
+    status: statusMap[sub.status] || 'pending',
+    submittedAt: sub.submittedAt,
+  };
+}
 
 export default function MyExams() {
-  const [submissions] = useState(mockCompletedExams);
+  const [submissions, setSubmissions] = useState([]);
   const [activeTab, setActiveTab] = useState('completed');
 
-  const completedExams = submissions.filter(
-    (s) =>
-      s.status === 'graded' ||
-      s.status === 'completed' ||
-      s.status === 'pending' ||
-      s.status === 'in-review',
-  );
-  const ongoingExams = submissions.filter(
-    (s) => s.status === 'in-progress' || s.status === 'started',
-  );
+  useEffect(() => {
+    examApi.getMySubmissions(0, 100).then((d) => setSubmissions(d.content || [])).catch(() => {});
+  }, []);
+
+  const adapted = submissions.map(adaptSubmissionForCard);
+
+  const completedExams = adapted.filter((s) => s.status === 'graded');
+  const ongoingExams = adapted.filter((s) => s.status === 'pending');
 
   const list = activeTab === 'completed' ? completedExams : ongoingExams;
 
@@ -33,8 +50,8 @@ export default function MyExams() {
 
       <div className="inline-flex items-center gap-1 rounded-md bg-surface-soft p-1">
         {[
-          { id: 'completed', label: 'Completed', count: completedExams.length, icon: 'task_alt' },
-          { id: 'ongoing', label: 'Ongoing', count: ongoingExams.length, icon: 'pending' },
+          { id: 'completed', label: 'Graded', count: completedExams.length, icon: 'task_alt' },
+          { id: 'ongoing', label: 'Pending review', count: ongoingExams.length, icon: 'pending' },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -61,11 +78,11 @@ export default function MyExams() {
       ) : (
         <EmptyState
           icon={activeTab === 'completed' ? 'task_alt' : 'pending'}
-          title={activeTab === 'completed' ? 'Nothing completed yet.' : 'Nothing in progress.'}
+          title={activeTab === 'completed' ? 'Nothing graded yet.' : 'Nothing pending.'}
           description={
             activeTab === 'completed'
-              ? 'Once you finish an exam, it shows up here with its grade.'
-              : "You don't have an exam in progress."
+              ? 'Once an exam is graded, it shows up here with your score.'
+              : "You have no submissions awaiting review."
           }
         />
       )}
@@ -82,4 +99,3 @@ function EmptyState({ icon, title, description }) {
     </div>
   );
 }
-

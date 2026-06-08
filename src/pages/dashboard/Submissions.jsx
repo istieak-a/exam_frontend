@@ -1,49 +1,50 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Badge } from '../../components/ui';
 import { StatCard } from '../../components/dashboard';
-import {
-  submissions as mockSubmissions,
-  teacherExams as mockTeacherExams,
-} from '../../data/mockData';
+import { examApi } from '../../services/api';
 
 const statusBadge = {
-  pending: { variant: 'warning', label: 'Pending', icon: 'pending_actions' },
-  'in-review': { variant: 'info', label: 'In review', icon: 'rate_review' },
-  graded: { variant: 'success', label: 'Graded', icon: 'check_circle' },
+  SUBMITTED: { variant: 'warning', label: 'Pending', icon: 'pending_actions' },
+  GRADED_MCQ: { variant: 'info', label: 'Auto-graded', icon: 'calculate' },
+  FULLY_GRADED: { variant: 'success', label: 'Graded', icon: 'check_circle' },
 };
 
 export default function Submissions() {
-  const [submissions] = useState(mockSubmissions);
-  const [exams] = useState(mockTeacherExams);
+  const [submissions, setSubmissions] = useState([]);
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedExam, setSelectedExam] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredSubmissions = submissions.filter((submission) => {
-    const matchesStatus = filterStatus === 'all' || submission.status === filterStatus;
-    const matchesExam = selectedExam === 'all' || submission.examTitle === selectedExam;
+  useEffect(() => {
+    examApi.getSubmissions(0, 100).then((d) => setSubmissions(d.content || [])).catch(() => {});
+  }, []);
+
+  const filteredSubmissions = submissions.filter((s) => {
+    const matchesStatus = filterStatus === 'all' || s.status === filterStatus;
+    const matchesExam = selectedExam === 'all' || s.examTitle === selectedExam;
     const matchesSearch =
-      submission.student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      submission.student.id.toLowerCase().includes(searchQuery.toLowerCase());
+      (s.studentName || '').toLowerCase().includes(searchQuery.toLowerCase());
     return matchesStatus && matchesExam && matchesSearch;
   });
 
   const stats = {
     all: submissions.length,
-    pending: submissions.filter((s) => s.status === 'pending').length,
-    inReview: submissions.filter((s) => s.status === 'in-review').length,
-    graded: submissions.filter((s) => s.status === 'graded').length,
+    pending: submissions.filter((s) => s.status === 'SUBMITTED').length,
+    inReview: submissions.filter((s) => s.status === 'GRADED_MCQ').length,
+    graded: submissions.filter((s) => s.status === 'FULLY_GRADED').length,
   };
 
   const tabs = [
     { id: 'all', label: 'All', count: stats.all },
-    { id: 'pending', label: 'Pending', count: stats.pending },
-    { id: 'in-review', label: 'In review', count: stats.inReview },
-    { id: 'graded', label: 'Graded', count: stats.graded },
+    { id: 'SUBMITTED', label: 'Pending', count: stats.pending },
+    { id: 'GRADED_MCQ', label: 'Auto-graded', count: stats.inReview },
+    { id: 'FULLY_GRADED', label: 'Graded', count: stats.graded },
   ];
+
+  const uniqueExamTitles = [...new Set(submissions.map((s) => s.examTitle).filter(Boolean))];
 
   return (
     <div className="space-y-8">
@@ -58,7 +59,7 @@ export default function Submissions() {
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard title="Total" value={stats.all} subtitle="Across exams" icon="fact_check" variant="primary" />
         <StatCard title="Pending" value={stats.pending} subtitle="Need a read" icon="pending_actions" variant="warning" />
-        <StatCard title="In review" value={stats.inReview} subtitle="With you" icon="rate_review" variant="info" />
+        <StatCard title="Auto-graded" value={stats.inReview} subtitle="MCQ done" icon="calculate" variant="info" />
         <StatCard title="Graded" value={stats.graded} subtitle="Closed" icon="check_circle" variant="success" />
       </section>
 
@@ -94,15 +95,9 @@ export default function Submissions() {
                 className="h-10 w-full rounded-md border border-hairline bg-canvas px-3 text-sm text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               >
                 <option value="all">All exams</option>
-                {exams
-                  .filter((e) =>
-                    ['published', 'active', 'completed'].includes(e.status?.toLowerCase()),
-                  )
-                  .map((exam) => (
-                    <option key={exam.id} value={exam.title}>
-                      {exam.title}
-                    </option>
-                  ))}
+                {uniqueExamTitles.map((title) => (
+                  <option key={title} value={title}>{title}</option>
+                ))}
               </select>
             </div>
 
@@ -114,7 +109,7 @@ export default function Submissions() {
                 </span>
                 <input
                   type="text"
-                  placeholder="By name or ID…"
+                  placeholder="By student name…"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="h-10 w-full rounded-md border border-hairline bg-canvas pl-9 pr-3 text-sm text-ink placeholder:text-muted-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
@@ -149,29 +144,34 @@ export default function Submissions() {
 }
 
 function SubmissionRow({ submission }) {
-  const status = statusBadge[submission.status] || statusBadge.pending;
+  const statusInfo = statusBadge[submission.status] || statusBadge.SUBMITTED;
+  const initials = (submission.studentName || 'S')
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase();
+  const pct = submission.maxScore > 0
+    ? ((submission.totalScore / submission.maxScore) * 100).toFixed(0)
+    : null;
+  const needsGrading = submission.status === 'SUBMITTED' && submission.examType === 'CQ';
 
   return (
     <article className="rounded-lg border border-hairline bg-canvas p-6 transition-colors hover:border-primary/30">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex flex-1 items-start gap-4">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/15 text-sm font-medium text-primary">
-            {submission.student.name
-              .split(' ')
-              .map((n) => n[0])
-              .join('')}
+            {initials}
           </div>
           <div className="flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="font-display text-[20px] leading-tight tracking-[-0.015em] text-ink">
-                {submission.student.name}
+                {submission.studentName}
               </h3>
-              <Badge variant={status.variant} size="sm">
-                <span className="material-symbols-outlined text-[13px]">{status.icon}</span>
-                {status.label}
+              <Badge variant={statusInfo.variant} size="sm">
+                <span className="material-symbols-outlined text-[13px]">{statusInfo.icon}</span>
+                {statusInfo.label}
               </Badge>
             </div>
-            <p className="mt-1 text-xs text-muted">{submission.student.id}</p>
 
             <div className="mt-3 flex items-center gap-2 text-sm text-body">
               <span className="material-symbols-outlined text-[16px] text-muted">assignment</span>
@@ -181,28 +181,21 @@ function SubmissionRow({ submission }) {
             <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-muted">
               <span className="flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-[14px]">
-                  {submission.examType === 'mcq' ? 'radio_button_checked' : 'edit_note'}
+                  {submission.examType === 'MCQ' ? 'radio_button_checked' : 'edit_note'}
                 </span>
-                {submission.examType === 'mcq' ? 'MCQ' : 'Written'}
+                {submission.examType === 'MCQ' ? 'MCQ' : 'Written'}
               </span>
-              <span className="flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-[14px]">schedule</span>
-                {submission.submittedAt}
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-[14px]">timer</span>
-                {submission.timeTaken}
-              </span>
-              {submission.autoScore && (
+              {submission.submittedAt && (
                 <span className="flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-[14px]">calculate</span>
-                  Auto {submission.autoScore}
+                  <span className="material-symbols-outlined text-[14px]">schedule</span>
+                  {new Date(submission.submittedAt).toLocaleString()}
                 </span>
               )}
-              {submission.totalScore !== undefined && (
+              {submission.totalScore != null && (
                 <span className="flex items-center gap-1.5 font-medium text-primary">
                   <span className="material-symbols-outlined text-[14px]">military_tech</span>
-                  {submission.totalScore}/{submission.maxScore} ({submission.percentage}%)
+                  {submission.totalScore}/{submission.maxScore}
+                  {pct && ` (${pct}%)`}
                 </span>
               )}
             </div>
@@ -210,15 +203,7 @@ function SubmissionRow({ submission }) {
         </div>
 
         <div className="shrink-0">
-          {submission.examType === 'mcq' || submission.status === 'graded' ? (
-            <Link
-              to={`/dashboard/grade/${submission.id}`}
-              className="inline-flex h-10 items-center gap-1.5 rounded-md border border-hairline bg-canvas px-4 text-sm font-medium text-ink transition-colors hover:bg-surface-soft"
-            >
-              <span className="material-symbols-outlined text-[16px]">visibility</span>
-              View
-            </Link>
-          ) : (
+          {needsGrading ? (
             <Link
               to={`/dashboard/grade/${submission.id}`}
               className="inline-flex h-10 items-center gap-1.5 rounded-md bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active"
@@ -226,10 +211,17 @@ function SubmissionRow({ submission }) {
               <span className="material-symbols-outlined text-[16px]">rate_review</span>
               Grade
             </Link>
+          ) : (
+            <Link
+              to={`/dashboard/grade/${submission.id}`}
+              className="inline-flex h-10 items-center gap-1.5 rounded-md border border-hairline bg-canvas px-4 text-sm font-medium text-ink transition-colors hover:bg-surface-soft"
+            >
+              <span className="material-symbols-outlined text-[16px]">visibility</span>
+              View
+            </Link>
           )}
         </div>
       </div>
     </article>
   );
 }
-
