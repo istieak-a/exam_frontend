@@ -113,6 +113,17 @@ export default function ExamResult() {
         )}
       </div>
 
+      {/* Teacher Feedback */}
+      {!isPending && submission.teacherFeedback && (
+        <div className="rounded-lg border border-accent-teal/25 bg-accent-teal/5 p-5">
+          <div className="mb-3 flex items-center gap-2.5">
+            <span className="material-symbols-outlined text-xl text-accent-teal">rate_review</span>
+            <h3 className="font-semibold text-ink">Teacher's Feedback</h3>
+          </div>
+          <p className="text-sm leading-relaxed text-body whitespace-pre-wrap">{submission.teacherFeedback}</p>
+        </div>
+      )}
+
       {/* Stats */}
       {!isPending && (
         <div className="grid gap-4 sm:grid-cols-3">

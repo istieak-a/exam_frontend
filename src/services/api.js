@@ -47,6 +47,8 @@ export const authApi = {
       method: 'POST',
       body: JSON.stringify({ currentPassword, newPassword }),
     }),
+
+  getTeachers: () => apiFetch('/api/auth/teachers'),
 };
 
 // ─── Exam helpers ─────────────────────────────────────────────────────────────
@@ -185,10 +187,10 @@ export const examApi = {
 
   getSubmission: (submissionId) => apiFetch(`/api/exams/submissions/${submissionId}`),
 
-  gradeSubmission: (submissionId, questionGrades) =>
+  gradeSubmission: (submissionId, questionGrades, feedback) =>
     apiFetch(`/api/exams/submissions/${submissionId}/grade`, {
       method: 'POST',
-      body: JSON.stringify({ questionGrades }),
+      body: JSON.stringify({ questionGrades, feedback }),
     }),
 };
 

@@ -11,6 +11,7 @@ export default function GradeSubmission() {
   const [submission, setSubmission] = useState(null);
   const [exam, setExam] = useState(null);
   const [grades, setGrades] = useState({});
+  const [feedback, setFeedback] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
@@ -25,6 +26,7 @@ export default function GradeSubmission() {
           initial[a.questionId] = a.awardedMarks ?? 0;
         });
         setGrades(initial);
+        setFeedback(sub.teacherFeedback || '');
         // Also fetch the exam to get question text
         if (sub.examId) {
           const e = await examApi.getExam(sub.examId).catch(() => null);
@@ -66,7 +68,7 @@ export default function GradeSubmission() {
       Object.entries(grades).forEach(([qId, marks]) => {
         questionGrades[String(qId)] = Math.round(marks);
       });
-      await examApi.gradeSubmission(id, questionGrades);
+      await examApi.gradeSubmission(id, questionGrades, feedback);
       navigate('/dashboard/submissions');
     } catch (err) {
       setSaveError(err.message || 'Failed to save grades.');
@@ -332,6 +334,27 @@ export default function GradeSubmission() {
             );
           })
         )}
+      </div>
+
+      {/* Teacher Feedback */}
+      <div className="rounded-lg border border-accent-teal/30 bg-accent-teal/5 p-6">
+        <div className="mb-4 flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent-teal/15">
+            <span className="material-symbols-outlined text-xl text-accent-teal">rate_review</span>
+          </div>
+          <div>
+            <h3 className="font-semibold text-ink">Teacher Feedback</h3>
+            <p className="text-xs text-muted">Optional — this message will be visible to the student in their result</p>
+          </div>
+        </div>
+        <textarea
+          rows={4}
+          value={feedback}
+          onChange={(e) => setFeedback(e.target.value)}
+          placeholder="Write personalized feedback for the student — strengths, areas to improve, encouragement…"
+          className="w-full resize-y rounded-lg border border-hairline bg-canvas px-4 py-3 text-sm text-ink placeholder:text-muted-soft focus:border-accent-teal focus:outline-none focus:ring-2 focus:ring-accent-teal/20 transition-all"
+        />
+        <p className="mt-1.5 text-right text-xs text-muted">{feedback.length} characters</p>
       </div>
 
       <div className="flex justify-end gap-2">
