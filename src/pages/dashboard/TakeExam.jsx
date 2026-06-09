@@ -5,6 +5,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { examApi } from '../../services/api';
 
 const MAX_VIOLATIONS = 3;
+const MAX_CAMERA_VIOLATIONS = 2;
 
 const defaultInstructions = [
   'Read all questions carefully before answering',
@@ -20,6 +21,8 @@ const integrityRules = [
   'Stay in fullscreen mode for the entire exam duration',
   'Right-click and developer tool shortcuts are disabled',
   'You will receive 2 warnings — a 3rd violation auto-submits your exam',
+  'Camera must remain active — your face must be visible throughout the exam',
+  '1 camera warning — a 2nd camera violation auto-submits your exam',
   'All violations are recorded and visible to your teacher',
 ];
 
@@ -58,6 +61,14 @@ export default function TakeExam() {
   const [violationModal, setViolationModal] = useState(null);
   // { type: 'tab'|'fullscreen'|'focus', count: N, isTerminated: bool }
 
+  // ── Camera / Proctoring state ──────────────────────────────────────────────
+  const [cameraPermission, setCameraPermission] = useState('pending');
+  // 'pending' | 'granted' | 'denied'
+  const [faceApiReady, setFaceApiReady] = useState(false);
+  const [cameraViolations, setCameraViolations] = useState(0);
+  const [cameraViolationModal, setCameraViolationModal] = useState(null);
+  // { reason: 'no_face'|'multiple_faces', count: N, isTerminated: bool }
+
   // ── Anti-cheat refs (stable across renders — safe in event handlers) ───────
   const examActiveRef = useRef(false);
   const violationCountRef = useRef(0);
@@ -67,8 +78,44 @@ export default function TakeExam() {
   const submittingRef = useRef(false);
   const answersRef = useRef({});
 
+  // ── Camera refs ────────────────────────────────────────────────────────────
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const recordedChunksRef = useRef([]);
+  const detectionIntervalRef = useRef(null);
+  const cameraViolationCountRef = useRef(0);
+  const cameraTerminatedRef = useRef(false);
+
   // Keep answersRef in sync so event handler callbacks always see latest answers
   useEffect(() => { answersRef.current = answers; }, [answers]);
+
+  // Assign camera stream to video element once it mounts (exam screen renders it)
+  useEffect(() => {
+    if (videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+    }
+  }, [cameraPermission, showInstructions]);
+
+  // ── Camera permission + face-api model load ────────────────────────────────
+  useEffect(() => {
+    let cancelled = false;
+    async function initCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
+        streamRef.current = stream;
+        if (videoRef.current) videoRef.current.srcObject = stream;
+        const faceapi = await import('face-api.js');
+        await faceapi.nets.tinyFaceDetector.loadFromUri('/models');
+        if (!cancelled) { setFaceApiReady(true); setCameraPermission('granted'); }
+      } catch {
+        if (!cancelled) setCameraPermission('denied');
+      }
+    }
+    initCamera();
+    return () => { cancelled = true; };
+  }, []);
 
   // ── Load exam ──────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -98,7 +145,28 @@ export default function TakeExam() {
         tabSwitches: tabSwitchCountRef.current,
         focusLosses: focusLossCountRef.current,
         terminated,
+        cameraViolations: cameraViolationCountRef.current,
+        cameraTerminated: cameraTerminatedRef.current,
       });
+
+      // Upload proctoring recording (fire-and-forget — never block navigation)
+      try {
+        // Always stop the recorder first so it flushes the final buffered chunk
+        // via ondataavailable BEFORE we create the blob. Gating on chunk count
+        // before stop() is the bug: exams submitted in <5s have 0 chunks yet.
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+          await new Promise(resolve => {
+            mediaRecorderRef.current.addEventListener('stop', resolve, { once: true });
+            mediaRecorderRef.current.stop();
+          });
+        }
+        if (recordedChunksRef.current.length > 0) {
+          const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+          examApi.uploadProctoringVideo(submission.id, blob).catch(() => {});
+        }
+      } catch { /* never block navigation on upload failure */ }
+      streamRef.current?.getTracks().forEach(t => t.stop());
+
       navigate(`/dashboard/exam-result/${submission.id}`);
     } catch (err) {
       submittingRef.current = false;
@@ -125,6 +193,47 @@ export default function TakeExam() {
     }, 1000);
     return () => clearInterval(interval);
   }, [showInstructions, exam]);
+
+  // ── Camera violation handlers ──────────────────────────────────────────────
+  const stopFaceDetection = useCallback(() => {
+    if (detectionIntervalRef.current) {
+      clearInterval(detectionIntervalRef.current);
+      detectionIntervalRef.current = null;
+    }
+  }, []);
+
+  const handleCameraViolation = useCallback((reason) => {
+    if (!examActiveRef.current || cameraTerminatedRef.current || isTerminatedRef.current) return;
+    cameraViolationCountRef.current += 1;
+    const count = cameraViolationCountRef.current;
+    setCameraViolations(count);
+    if (count >= MAX_CAMERA_VIOLATIONS) {
+      cameraTerminatedRef.current = true;
+      isTerminatedRef.current = true;
+      setCameraViolationModal({ reason, count, isTerminated: true });
+      stopFaceDetection();
+      setTimeout(() => doSubmitRef.current(true), 4000);
+    } else {
+      setCameraViolationModal({ reason, count, isTerminated: false });
+    }
+  }, [stopFaceDetection]);
+
+  const startFaceDetection = useCallback(async () => {
+    if (!faceApiReady || !videoRef.current) return;
+    const faceapi = await import('face-api.js');
+    detectionIntervalRef.current = setInterval(async () => {
+      if (!examActiveRef.current || cameraTerminatedRef.current) return;
+      if (!videoRef.current || videoRef.current.readyState < 2) return;
+      try {
+        const detections = await faceapi.detectAllFaces(
+          videoRef.current,
+          new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.5 })
+        );
+        if (detections.length === 0) handleCameraViolation('no_face');
+        else if (detections.length > 1) handleCameraViolation('multiple_faces');
+      } catch { /* silently ignore inference errors */ }
+    }, 3000);
+  }, [faceApiReady, handleCameraViolation]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Violation handler ──────────────────────────────────────────────────────
   const handleViolation = useCallback((type) => {
@@ -161,6 +270,23 @@ export default function TakeExam() {
       .then(() => setIsFullscreen(true))
       .catch(() => setIsFullscreen(false));
 
+    // Start MediaRecorder for proctoring video
+    if (streamRef.current && window.MediaRecorder) {
+      recordedChunksRef.current = [];
+      const options = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+        ? { mimeType: 'video/webm;codecs=vp9' }
+        : { mimeType: 'video/webm' };
+      const recorder = new MediaRecorder(streamRef.current, options);
+      recorder.ondataavailable = (e) => {
+        if (e.data?.size > 0) recordedChunksRef.current.push(e.data);
+      };
+      recorder.start(5000);
+      mediaRecorderRef.current = recorder;
+    }
+
+    // Start face detection polling
+    startFaceDetection();
+
     const onVisibilityChange = () => {
       if (document.hidden) handleViolation('tab');
     };
@@ -196,6 +322,7 @@ export default function TakeExam() {
 
     return () => {
       examActiveRef.current = false;
+      stopFaceDetection();
       document.removeEventListener('visibilitychange', onVisibilityChange);
       document.removeEventListener('fullscreenchange', onFullscreenChange);
       document.removeEventListener('contextmenu', onContextMenu);
@@ -204,7 +331,7 @@ export default function TakeExam() {
         document.exitFullscreen?.().catch(() => {});
       }
     };
-  }, [showInstructions, exam, handleViolation]);
+  }, [showInstructions, exam, handleViolation, startFaceDetection, stopFaceDetection]);
 
   // ── Question helpers ───────────────────────────────────────────────────────
   const formattedQuestions = (exam?.questions || []).map((q) => ({
@@ -346,6 +473,33 @@ export default function TakeExam() {
             </span>
           </div>
 
+          {/* Camera permission status */}
+          {cameraPermission === 'denied' && (
+            <div className="mt-4 rounded-lg border border-error/40 bg-error/5 p-4 flex items-start gap-3">
+              <span className="material-symbols-outlined text-error mt-0.5">videocam_off</span>
+              <div>
+                <p className="font-semibold text-ink text-sm">Camera Access Required</p>
+                <p className="text-sm text-body mt-1">
+                  This exam requires your camera for proctoring. Please allow camera access in your browser settings and refresh the page.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {cameraPermission === 'pending' && (
+            <div className="mt-4 flex items-center gap-2 text-sm text-body rounded-lg border border-hairline bg-surface-soft p-4">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-hairline border-t-primary flex-shrink-0" />
+              Requesting camera access and loading face detection…
+            </div>
+          )}
+
+          {cameraPermission === 'granted' && (
+            <div className="mt-4 flex items-center gap-2 text-sm text-[#2f6e3d] rounded-lg border border-success/30 bg-success/5 p-4">
+              <span className="material-symbols-outlined">videocam</span>
+              Camera ready — face detection loaded
+            </div>
+          )}
+
           <div className="mt-8 flex gap-3">
             <button
               onClick={() => navigate('/dashboard/available-exams')}
@@ -355,9 +509,14 @@ export default function TakeExam() {
             </button>
             <button
               onClick={() => setShowInstructions(false)}
-              className="flex-1 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-on-primary transition-colors hover:bg-primary-active"
+              disabled={cameraPermission !== 'granted'}
+              className={`flex-1 rounded-lg px-6 py-3 text-sm font-medium text-on-primary transition-colors ${
+                cameraPermission === 'granted'
+                  ? 'bg-primary hover:bg-primary-active'
+                  : 'bg-primary/40 cursor-not-allowed'
+              }`}
             >
-              I Understand — Start Exam
+              {cameraPermission === 'granted' ? 'I Understand — Start Exam' : 'Camera Required to Start'}
             </button>
           </div>
         </div>
@@ -468,6 +627,78 @@ export default function TakeExam() {
                       ? 'bg-error hover:bg-error/90'
                       : 'bg-warning hover:bg-warning/90'
                   }`}
+                >
+                  I Understand — Return to Exam
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Camera Violation Modal ──────────────────────────────────────────── */}
+      {cameraViolationModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4">
+          <div className={`w-full max-w-md rounded-xl border-2 bg-canvas p-6 shadow-2xl ${
+            cameraViolationModal.isTerminated ? 'border-error' : 'border-warning/60'
+          }`}>
+            <div className="text-center">
+              <div className={`mx-auto flex h-16 w-16 items-center justify-center rounded-full ${
+                cameraViolationModal.isTerminated ? 'bg-error/15' : 'bg-warning/15'
+              }`}>
+                <span className={`material-symbols-outlined text-4xl ${
+                  cameraViolationModal.isTerminated ? 'text-error' : 'text-[#7a5a0e]'
+                }`}>
+                  {cameraViolationModal.isTerminated ? 'gavel' : 'videocam_off'}
+                </span>
+              </div>
+
+              <h3 className="mt-4 font-display text-[22px] leading-tight tracking-[-0.015em] text-ink">
+                {cameraViolationModal.isTerminated ? 'Exam Terminated' : 'Camera Warning'}
+              </h3>
+
+              <div className={`mt-2 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${
+                cameraViolationModal.isTerminated ? 'bg-error/10 text-error' : 'bg-warning/15 text-[#7a5a0e]'
+              }`}>
+                <span className="material-symbols-outlined text-sm">
+                  {cameraViolationModal.reason === 'no_face' ? 'person_off' : 'group'}
+                </span>
+                {cameraViolationModal.reason === 'no_face' ? 'No face detected' : 'Multiple faces detected'}
+              </div>
+
+              <p className="mt-4 text-sm leading-relaxed text-body">
+                {cameraViolationModal.isTerminated
+                  ? "Your exam has been automatically submitted due to repeated camera violations. This has been flagged for your teacher's review."
+                  : cameraViolationModal.reason === 'no_face'
+                    ? 'Your face was not visible to the camera. Please ensure you are looking directly at the screen. This is your first and only warning before automatic submission.'
+                    : 'More than one face was detected. Only the registered student may be present during the exam. This is your first and only warning.'}
+              </p>
+
+              <div className="mt-4 flex items-center justify-center gap-2 rounded-lg bg-surface-soft p-3">
+                <span className="material-symbols-outlined text-sm text-error">videocam</span>
+                <span className="text-xs font-semibold text-body-strong">
+                  Camera violation {cameraViolationModal.count} of {MAX_CAMERA_VIOLATIONS} recorded
+                </span>
+              </div>
+
+              <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-hairline">
+                <div
+                  className={`h-full rounded-full transition-all ${
+                    cameraViolationModal.isTerminated ? 'bg-error' : 'bg-warning'
+                  }`}
+                  style={{ width: `${(cameraViolationModal.count / MAX_CAMERA_VIOLATIONS) * 100}%` }}
+                />
+              </div>
+
+              {cameraViolationModal.isTerminated ? (
+                <div className="mt-5 flex items-center justify-center gap-2 text-sm text-muted">
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-hairline border-t-error" />
+                  Submitting your exam automatically…
+                </div>
+              ) : (
+                <button
+                  onClick={() => setCameraViolationModal(null)}
+                  className="mt-5 w-full rounded-lg bg-warning px-6 py-2.5 text-sm font-semibold text-white hover:bg-warning/90 transition-colors"
                 >
                   I Understand — Return to Exam
                 </button>
@@ -774,6 +1005,45 @@ export default function TakeExam() {
                   ? 'No violations detected'
                   : `${MAX_VIOLATIONS - totalViolations} warning${MAX_VIOLATIONS - totalViolations !== 1 ? 's' : ''} remaining before auto-submit`}
               </p>
+            </div>
+
+            {/* Camera Monitor */}
+            <div className={`rounded-lg border p-4 ${
+              cameraPermission !== 'granted'
+                ? 'border-error/30 bg-error/5'
+                : cameraViolations === 0
+                  ? 'border-success/25 bg-success/5'
+                  : 'border-warning/30 bg-warning/5'
+            }`}>
+              <div className="mb-2 flex items-center gap-2">
+                <span className={`material-symbols-outlined text-lg ${
+                  cameraPermission !== 'granted' ? 'text-error'
+                  : cameraViolations === 0 ? 'text-[#2f6e3d]' : 'text-[#7a5a0e]'
+                }`}>
+                  {cameraPermission !== 'granted' ? 'videocam_off' : 'videocam'}
+                </span>
+                <span className="text-xs font-semibold text-ink">Camera Monitor</span>
+                {cameraViolations > 0 && (
+                  <span className="ml-auto text-xs font-bold text-[#7a5a0e]">
+                    {cameraViolations}/{MAX_CAMERA_VIOLATIONS}
+                  </span>
+                )}
+              </div>
+              <p className="text-[10px] text-muted">
+                {cameraPermission !== 'granted' ? 'Camera not available'
+                  : cameraViolations === 0 ? 'Camera active — no issues'
+                  : `${MAX_CAMERA_VIOLATIONS - cameraViolations} warning${MAX_CAMERA_VIOLATIONS - cameraViolations !== 1 ? 's' : ''} before auto-submit`}
+              </p>
+              {cameraPermission === 'granted' && (
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  muted
+                  playsInline
+                  className="mt-3 w-full rounded-lg border border-hairline object-cover"
+                  style={{ height: '80px' }}
+                />
+              )}
             </div>
 
           </div>

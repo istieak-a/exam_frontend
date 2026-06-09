@@ -171,6 +171,12 @@ function SubmissionRow({ submission }) {
                 <span className="material-symbols-outlined text-[13px]">{statusInfo.icon}</span>
                 {statusInfo.label}
               </Badge>
+              {(submission.cameraTerminated || submission.proctoringFlagged) && (
+                <Badge variant="error" size="sm">
+                  <span className="material-symbols-outlined text-[13px]">videocam_off</span>
+                  Proctoring Flag
+                </Badge>
+              )}
             </div>
 
             <div className="mt-3 flex items-center gap-2 text-sm text-body">
@@ -196,6 +202,12 @@ function SubmissionRow({ submission }) {
                   <span className="material-symbols-outlined text-[14px]">military_tech</span>
                   {submission.totalScore}/{submission.maxScore}
                   {pct && ` (${pct}%)`}
+                </span>
+              )}
+              {submission.cameraViolationCount > 0 && (
+                <span className="flex items-center gap-1.5 text-error font-medium">
+                  <span className="material-symbols-outlined text-[14px]">videocam_off</span>
+                  {submission.cameraViolationCount} camera violation{submission.cameraViolationCount > 1 ? 's' : ''}
                 </span>
               )}
             </div>

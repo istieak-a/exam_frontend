@@ -192,6 +192,23 @@ export const examApi = {
       method: 'POST',
       body: JSON.stringify({ questionGrades, feedback }),
     }),
+
+  uploadProctoringVideo: (submissionId, blob) => {
+    const formData = new FormData();
+    formData.append('video', blob, `proctoring_${submissionId}.webm`);
+    return fetch(`${BASE}/api/exams/submissions/${submissionId}/upload-video`, {
+      method: 'POST',
+      credentials: 'include',
+      body: formData,
+    }).then(async (res) => {
+      const json = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(json?.message || 'Video upload failed');
+      return json?.data ?? json;
+    });
+  },
+
+  getProctoringVideoUrl: (submissionId) =>
+    `${BASE}/api/exams/submissions/${submissionId}/proctoring-video`,
 };
 
 // ─── Chat API ─────────────────────────────────────────────────────────────────

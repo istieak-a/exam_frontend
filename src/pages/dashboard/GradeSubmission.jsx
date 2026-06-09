@@ -116,22 +116,29 @@ export default function GradeSubmission() {
 
   const hasIntegrityFlags = submission.tabSwitchCount > 0
     || submission.focusLossCount > 0
-    || submission.violationTerminated;
+    || submission.violationTerminated
+    || submission.cameraViolationCount > 0
+    || submission.cameraTerminated;
 
   const IntegrityReport = () => {
     if (!hasIntegrityFlags) return null;
     return (
       <div className={`rounded-lg border p-5 ${
-        submission.violationTerminated ? 'border-error/40 bg-error/5' : 'border-warning/40 bg-warning/5'
+        (submission.violationTerminated || submission.cameraTerminated) ? 'border-error/40 bg-error/5' : 'border-warning/40 bg-warning/5'
       }`}>
         <div className="mb-4 flex items-center gap-2">
-          <span className={`material-symbols-outlined ${submission.violationTerminated ? 'text-error' : 'text-[#7a5a0e]'}`}>
+          <span className={`material-symbols-outlined ${(submission.violationTerminated || submission.cameraTerminated) ? 'text-error' : 'text-[#7a5a0e]'}`}>
             security
           </span>
           <h3 className="font-semibold text-ink">Integrity Report</h3>
           {submission.violationTerminated && (
             <span className="ml-auto rounded-full bg-error/15 px-3 py-0.5 text-xs font-semibold text-error">
               Auto-Terminated
+            </span>
+          )}
+          {submission.cameraTerminated && (
+            <span className="ml-auto rounded-full bg-error/15 px-3 py-0.5 text-xs font-semibold text-error">
+              Proctoring Flag
             </span>
           )}
         </div>
@@ -155,9 +162,52 @@ export default function GradeSubmission() {
             </div>
           </div>
         </div>
+
+        {(submission.cameraViolationCount > 0 || submission.cameraTerminated) && (
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <div className="rounded-lg border border-hairline bg-canvas p-4 text-center">
+              <p className={`text-3xl font-bold ${submission.cameraViolationCount > 0 ? 'text-error' : 'text-[#2f6e3d]'}`}>
+                {submission.cameraViolationCount || 0}
+              </p>
+              <div className="mt-1 flex items-center justify-center gap-1 text-xs text-muted">
+                <span className="material-symbols-outlined text-sm">videocam_off</span>
+                Camera Violations
+              </div>
+            </div>
+            <div className="rounded-lg border border-hairline bg-canvas p-4 text-center">
+              <p className={`text-3xl font-bold ${submission.cameraTerminated ? 'text-error' : 'text-[#2f6e3d]'}`}>
+                {submission.cameraTerminated ? 'Yes' : 'No'}
+              </p>
+              <div className="mt-1 flex items-center justify-center gap-1 text-xs text-muted">
+                <span className="material-symbols-outlined text-sm">gavel</span>
+                Camera-Terminated
+              </div>
+            </div>
+          </div>
+        )}
+
+        {submission.proctoringVideoPath && (
+          <div className="mt-4">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-body-strong flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-sm">play_circle</span>
+              Proctoring Recording
+            </p>
+            <video
+              controls
+              crossOrigin="use-credentials"
+              className="w-full rounded-lg border border-hairline"
+              style={{ maxHeight: '300px' }}
+              src={examApi.getProctoringVideoUrl(submission.id)}
+            >
+              Your browser does not support video playback.
+            </video>
+            <p className="mt-1 text-[10px] text-muted">Full session recording · WebM format</p>
+          </div>
+        )}
+
         <p className="mt-3 text-xs text-muted">
-          {submission.violationTerminated
-            ? 'This exam was automatically terminated after repeated integrity violations.'
+          {(submission.violationTerminated || submission.cameraTerminated)
+            ? 'This exam was automatically terminated due to integrity violations.'
             : 'Integrity violations were detected during this exam. Consider these when finalising the grade.'}
         </p>
       </div>
