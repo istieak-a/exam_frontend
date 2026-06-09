@@ -173,10 +173,10 @@ export const examApi = {
 
   deleteExam: (examId) => apiFetch(`/api/exams/${examId}`, { method: 'DELETE' }),
 
-  submitExam: (examId, answers) =>
+  submitExam: (examId, answers, integrity = {}) =>
     apiFetch(`/api/exams/${examId}/submit`, {
       method: 'POST',
-      body: JSON.stringify(answers),
+      body: JSON.stringify({ answers, ...integrity }),
     }),
 
   getSubmissions: (page = 0, size = 50) =>

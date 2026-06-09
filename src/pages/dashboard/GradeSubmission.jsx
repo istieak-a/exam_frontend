@@ -114,6 +114,56 @@ export default function GradeSubmission() {
     );
   }
 
+  const hasIntegrityFlags = submission.tabSwitchCount > 0
+    || submission.focusLossCount > 0
+    || submission.violationTerminated;
+
+  const IntegrityReport = () => {
+    if (!hasIntegrityFlags) return null;
+    return (
+      <div className={`rounded-lg border p-5 ${
+        submission.violationTerminated ? 'border-error/40 bg-error/5' : 'border-warning/40 bg-warning/5'
+      }`}>
+        <div className="mb-4 flex items-center gap-2">
+          <span className={`material-symbols-outlined ${submission.violationTerminated ? 'text-error' : 'text-[#7a5a0e]'}`}>
+            security
+          </span>
+          <h3 className="font-semibold text-ink">Integrity Report</h3>
+          {submission.violationTerminated && (
+            <span className="ml-auto rounded-full bg-error/15 px-3 py-0.5 text-xs font-semibold text-error">
+              Auto-Terminated
+            </span>
+          )}
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-lg border border-hairline bg-canvas p-4 text-center">
+            <p className={`text-3xl font-bold ${submission.tabSwitchCount > 0 ? 'text-error' : 'text-[#2f6e3d]'}`}>
+              {submission.tabSwitchCount || 0}
+            </p>
+            <div className="mt-1 flex items-center justify-center gap-1 text-xs text-muted">
+              <span className="material-symbols-outlined text-sm">tab_unselected</span>
+              Tab Switches
+            </div>
+          </div>
+          <div className="rounded-lg border border-hairline bg-canvas p-4 text-center">
+            <p className={`text-3xl font-bold ${submission.focusLossCount > 0 ? 'text-error' : 'text-[#2f6e3d]'}`}>
+              {submission.focusLossCount || 0}
+            </p>
+            <div className="mt-1 flex items-center justify-center gap-1 text-xs text-muted">
+              <span className="material-symbols-outlined text-sm">fullscreen_exit</span>
+              Focus Losses
+            </div>
+          </div>
+        </div>
+        <p className="mt-3 text-xs text-muted">
+          {submission.violationTerminated
+            ? 'This exam was automatically terminated after repeated integrity violations.'
+            : 'Integrity violations were detected during this exam. Consider these when finalising the grade.'}
+        </p>
+      </div>
+    );
+  };
+
   if (isAutoGraded) {
     return (
       <div className="space-y-6">
@@ -145,6 +195,8 @@ export default function GradeSubmission() {
             </p>
           </div>
         </div>
+
+        <IntegrityReport />
 
         {/* Show answers */}
         <div className="space-y-4">
@@ -254,6 +306,8 @@ export default function GradeSubmission() {
           </div>
         </div>
       </div>
+
+      <IntegrityReport />
 
       {/* Score Summary */}
       <div className="rounded-lg bg-surface-card p-6 border border-hairline">
